@@ -1,22 +1,25 @@
 import Phaser from 'phaser';
 import { WORLD } from '../config/balance';
 import { POTHOLES } from '../config/hazards';
-import { FIRST_STATION } from '../config/stations';
+import { ROAD_EDGES, ROAD_NODES } from '../config/roads';
+import { ROUTE_STATIONS } from '../config/stations';
 import { CargoHold, type RecyclingType } from '../game/CargoHold';
 import { CrewDynamics, type CrewReaction } from '../game/CrewDynamics';
 import { FixedStepClock } from '../game/FixedStepClock';
 import { PotholeSystem } from '../game/PotholeSystem';
-import { StationCycle } from '../game/StationCycle';
+import { RoadGraph, type RoutePoint } from '../game/RoadGraph';
+import { RouteMission } from '../game/RouteMission';
 import { Vehicle } from '../game/Vehicle';
 import { Hud } from '../ui/Hud';
 
 export class GameScene extends Phaser.Scene {
   private readonly vehicle = new Vehicle();
   private readonly clock = new FixedStepClock();
-  private readonly cargo = new CargoHold();
+  private readonly cargo = new CargoHold(180, 140);
   private readonly crew = new CrewDynamics();
   private readonly potholes = new PotholeSystem(POTHOLES);
-  private readonly station = new StationCycle(FIRST_STATION, this.cargo);
+  private readonly roads = new RoadGraph(ROAD_NODES, ROAD_EDGES);
+  private readonly mission = new RouteMission(ROUTE_STATIONS, this.cargo, this.roads);
   private truck!: Phaser.GameObjects.Container;
   private attendantA!: Phaser.GameObjects.Container;
   private attendantB!: Phaser.GameObjects.Container;
@@ -24,7 +27,9 @@ export class GameScene extends Phaser.Scene {
   private reactionText!: Phaser.GameObjects.Text;
   private cameraTarget!: Phaser.GameObjects.Zone;
   private stopMarker!: Phaser.GameObjects.Graphics;
+  private navigationLayer!: Phaser.GameObjects.Graphics;
   private residents: Phaser.GameObjects.Container[] = [];
+  private residentItems: Phaser.GameObjects.Graphics[] = [];
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private brakeKey!: Phaser.Input.Keyboard.Key;
   private pendingImpact = 0;
@@ -36,6 +41,7 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, WORLD.width, WORLD.height);
     this.cameras.main.setZoom(1.1);
     this.drawStreet();
+    this.navigationLayer = this.add.graphics();
     this.stopMarker = this.add.graphics();
     this.createResidents();
     this.truck = this.createTruck();
@@ -49,14 +55,14 @@ export class GameScene extends Phaser.Scene {
     const throttle = Number(this.cursors.up.isDown) - Number(this.cursors.down.isDown);
     const steering = Number(this.cursors.right.isDown) - Number(this.cursors.left.isDown);
     this.clock.advance(deltaMs / 1000, (dt) => {
-      this.station.update({
+      this.mission.update({
         vehicleX: this.vehicle.x,
         vehicleY: this.vehicle.y,
         vehicleSpeed: this.vehicle.speed,
         attemptingToDrive: throttle !== 0,
         crewEfficiency: this.crew.efficiency,
-      }, dt);
-      const safetyBrake = this.station.departureLocked && throttle !== 0;
+      }, this.crew.anger, dt);
+      const safetyBrake = Boolean(this.mission.activeCycle?.departureLocked && throttle !== 0);
       this.vehicle.update({
         throttle: safetyBrake ? 0 : throttle,
         steering,
@@ -72,6 +78,8 @@ export class GameScene extends Phaser.Scene {
       this.cameras.main.shake(110, 0.0025 + this.pendingImpact * 0.004);
       this.pendingImpact = 0;
     }
+    const navigation = this.mission.getNavigation({ x: this.vehicle.x, y: this.vehicle.y });
+    this.updateNavigation(navigation.path);
     this.updateStationVisuals();
     this.updateAttendants();
     this.updateCargoVisuals();
@@ -82,12 +90,13 @@ export class GameScene extends Phaser.Scene {
       Phaser.Math.Linear(this.cameraTarget.x, targetX, 0.1),
       Phaser.Math.Linear(this.cameraTarget.y, targetY, 0.1),
     );
-    const stop = FIRST_STATION.stop;
+    const activeStation = this.mission.activeStation;
+    const activeCycle = this.mission.activeCycle;
     this.hud.update({
       speed: this.vehicle.speed,
       lateralSpeed: this.vehicle.telemetry.lateralSpeed,
-      distanceMeters: Math.round(Math.hypot(this.vehicle.x - stop.x, this.vehicle.y - stop.y) * 2.5),
-      status: this.station.getStatusText(),
+      distanceMeters: navigation.remainingMeters,
+      status: activeCycle?.getStatusText() ?? '✓ 三站路線全部完成',
       cargoVolume: this.cargo.volume,
       maxCargoVolume: this.cargo.maxVolume,
       cargoWeight: this.cargo.weight,
@@ -95,6 +104,13 @@ export class GameScene extends Phaser.Scene {
       crewAnger: this.crew.anger,
       crewEfficiency: this.crew.efficiency,
       crewReaction: this.reactionLabel(this.crew.reaction),
+      stationName: activeStation?.name ?? '任務完成',
+      stationNumber: this.mission.currentStationIndex + 1,
+      stationCount: ROUTE_STATIONS.length,
+      etaSeconds: navigation.etaSeconds,
+      scheduledTime: navigation.scheduledTime,
+      delaySeconds: navigation.delaySeconds,
+      settlement: this.mission.getSettlement(),
     });
   }
 
@@ -113,10 +129,19 @@ export class GameScene extends Phaser.Scene {
       g.fillStyle(color).fillRect(x, y, w, h);
       g.fillStyle(0x252f38).fillRect(x + 18, y + 25, w - 36, 22);
     }
-    g.fillStyle(0xf8f2da).fillRect(1080, 365, 200, 50);
-    this.add.text(1100, 377, '和平東路收運站', { fontFamily: 'monospace', fontSize: '18px', color: '#26313a' });
-    g.fillStyle(0x27323a).fillRect(1184, 337, 34, 28);
-    this.add.text(1190, 342, '出口', { fontFamily: 'monospace', fontSize: '12px', color: '#f8f2da' });
+    const signs = [
+      { x: 1080, y: 365, w: 220, name: ROUTE_STATIONS[0].name },
+      { x: 1080, y: 285, w: 250, name: ROUTE_STATIONS[1].name },
+      { x: 130, y: 260, w: 250, name: ROUTE_STATIONS[2].name },
+    ];
+    for (const sign of signs) {
+      g.fillStyle(0xf8f2da).fillRect(sign.x, sign.y, sign.w, 42);
+      this.add.text(sign.x + 12, sign.y + 11, sign.name, { fontFamily: 'monospace', fontSize: '16px', color: '#26313a' });
+    }
+    for (const station of ROUTE_STATIONS) {
+      g.fillStyle(0x27323a).fillCircle(station.buildingExit.x, station.buildingExit.y, 13);
+      this.add.text(station.buildingExit.x - 12, station.buildingExit.y - 7, '出口', { fontFamily: 'monospace', fontSize: '10px', color: '#f8f2da' });
+    }
   }
 
   private createTruck(): Phaser.GameObjects.Container {
@@ -151,40 +176,66 @@ export class GameScene extends Phaser.Scene {
 
   private createResidents(): void {
     const colors = [0xa84c45, 0x6e55a4, 0x3c7d63, 0xb57435];
-    this.residents = FIRST_STATION.deliveries.map((delivery, index) => {
+    const maxResidents = Math.max(...ROUTE_STATIONS.map((station) => station.deliveries.length));
+    this.residents = Array.from({ length: maxResidents }, (_, index) => {
       const person = this.add.graphics();
       person.fillStyle(colors[index]).fillRect(-8, 5, 16, 20);
       person.fillStyle(0xf1b281).fillCircle(0, 0, 8);
-      person.fillStyle(this.recyclingColor(delivery.type)).fillRect(10, 7, 12, 12);
-      return this.add.container(FIRST_STATION.buildingExit.x, FIRST_STATION.buildingExit.y, [person]).setVisible(false);
+      const item = this.add.graphics();
+      this.residentItems.push(item);
+      return this.add.container(0, 0, [person, item]).setVisible(false);
     });
   }
 
-  private updateStationVisuals(): void {
-    const stop = FIRST_STATION.stop;
-    const ready = this.station.phase === 'ready' || this.station.phase === 'departed';
-    this.stopMarker.clear();
-    this.stopMarker.fillStyle(ready ? 0x5ec76f : 0xf1c84c, 0.15).fillRect(stop.x - 78, stop.y - 40, 156, 80);
-    this.stopMarker.lineStyle(4, ready ? 0x5ec76f : 0xf1c84c, 0.95).strokeRect(stop.x - 78, stop.y - 40, 156, 80);
-    this.stopMarker.fillStyle(ready ? 0x5ec76f : 0xf1c84c).fillCircle(stop.x, stop.y, 6);
+  private updateNavigation(path: readonly RoutePoint[]): void {
+    this.navigationLayer.clear();
+    if (path.length < 2) return;
+    this.navigationLayer.lineStyle(6, 0x56d8e8, 0.55).beginPath().moveTo(path[0].x, path[0].y);
+    for (let index = 1; index < path.length; index += 1) this.navigationLayer.lineTo(path[index].x, path[index].y);
+    this.navigationLayer.strokePath();
+    for (let index = 1; index < path.length; index += 1) {
+      this.navigationLayer.fillStyle(index === path.length - 1 ? 0xf1c84c : 0x56d8e8, 0.9).fillCircle(path[index].x, path[index].y, index === path.length - 1 ? 9 : 5);
+    }
+  }
 
-    const snapshots = this.station.getResidents();
+  private updateStationVisuals(): void {
+    this.stopMarker.clear();
+    ROUTE_STATIONS.forEach((station, index) => {
+      const completed = index < this.mission.currentStationIndex;
+      const active = index === this.mission.currentStationIndex;
+      const ready = active && (this.mission.activeCycle?.phase === 'ready' || this.mission.activeCycle?.phase === 'departed');
+      const color = completed || ready ? 0x5ec76f : active ? 0xf1c84c : 0x70818d;
+      const vertical = station.id === 'xinsheng-south-road';
+      const width = vertical ? 80 : 156;
+      const height = vertical ? 156 : 80;
+      this.stopMarker.fillStyle(color, active || completed ? 0.15 : 0.07).fillRect(station.stop.x - width / 2, station.stop.y - height / 2, width, height);
+      this.stopMarker.lineStyle(active ? 4 : 2, color, active || completed ? 0.95 : 0.45).strokeRect(station.stop.x - width / 2, station.stop.y - height / 2, width, height);
+      this.stopMarker.fillStyle(color).fillCircle(station.stop.x, station.stop.y, active ? 7 : 4);
+    });
+
+    this.residents.forEach((resident) => resident.setVisible(false));
+    const cycle = this.mission.activeCycle;
+    const station = this.mission.activeStation;
+    if (!cycle || !station) return;
+    const snapshots = cycle.getResidents();
     snapshots.forEach((snapshot, index) => {
       const resident = this.residents[index];
       resident.setVisible(snapshot.visible);
       if (!snapshot.visible) return;
-      const queueX = FIRST_STATION.queueStart.x + snapshot.queueIndex * 30;
-      const queueY = FIRST_STATION.queueStart.y;
+      const exitsHorizontally = Math.abs(station.buildingExit.x - station.queueStart.x) > Math.abs(station.buildingExit.y - station.queueStart.y);
+      const queueX = station.queueStart.x + (exitsHorizontally ? 0 : snapshot.queueIndex * 30);
+      const queueY = station.queueStart.y + (exitsHorizontally ? snapshot.queueIndex * 30 : 0);
       resident.setPosition(
-        Phaser.Math.Linear(FIRST_STATION.buildingExit.x, queueX, snapshot.entranceProgress),
-        Phaser.Math.Linear(FIRST_STATION.buildingExit.y, queueY, snapshot.entranceProgress),
+        Phaser.Math.Linear(station.buildingExit.x, queueX, snapshot.entranceProgress),
+        Phaser.Math.Linear(station.buildingExit.y, queueY, snapshot.entranceProgress),
       );
+      this.residentItems[index].clear().fillStyle(this.recyclingColor(snapshot.item.type)).fillRect(10, 7, 12, 12);
     });
   }
 
   private updateAttendants(): void {
-    const state = this.station.workerState;
-    const p = this.smoothStep(this.station.workerProgress);
+    const state = this.mission.activeCycle?.workerState ?? 'riding';
+    const p = this.smoothStep(this.mission.activeCycle?.workerProgress ?? 0);
     const riding = { x: -42, y: -14 };
     const tail = { x: -103, y: -14 };
     const sorting = { x: -62, y: 8 };
