@@ -62,6 +62,11 @@ export class StationCycle {
     return this.definition.deliveries[this.completedDeliveries];
   }
 
+  public get residentDelaySeconds(): number {
+    if (this.phase !== 'servicing' || this.action !== 'resident-arriving') return 0;
+    return Math.max(0, this.actionElapsed - 0.45);
+  }
+
   public update(observation: StationObservation, dt: number): void {
     this.warningTimer = Math.max(0, this.warningTimer - dt);
     const distance = Math.hypot(

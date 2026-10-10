@@ -24,6 +24,7 @@ export class Hud {
     crewAnger: number;
     crewEfficiency: number;
     crewReaction: string;
+    angerReason: string;
     stationName: string;
     stationNumber: number;
     stationCount: number;
@@ -50,6 +51,7 @@ export class Hud {
       `<span class="hud-status">${data.status}</span>`,
       `車斗 ${data.cargoVolume}/${data.maxCargoVolume} 容量　${data.cargoWeight}/${data.maxCargoWeight} kg`,
       `<span class="anger ${angerClass}">怒氣 ${angerBar} ${Math.round(data.crewAnger)}/100　${data.crewReaction}</span>`,
+      `<small>怒氣原因：${data.angerReason}</small>`,
       `作業效率 ${Math.round(data.crewEfficiency * 100)}%`,
       '<small>方向鍵／WASD 駕駛　Space 緊急煞車</small>',
     ].join('<br>');

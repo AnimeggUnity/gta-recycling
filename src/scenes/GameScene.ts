@@ -69,7 +69,10 @@ export class GameScene extends Phaser.Scene {
       }, dt);
       const impact = this.potholes.update(this.vehicle.x, this.vehicle.y, this.vehicle.speed);
       this.pendingImpact = Math.max(this.pendingImpact, impact);
-      this.crew.update(this.vehicle.telemetry, impact, dt);
+      this.crew.update(this.vehicle.telemetry, impact, dt, {
+        steeringInput: steering,
+        residentDelaySeconds: this.mission.activeCycle?.residentDelaySeconds ?? 0,
+      });
     });
     const bounceScale = 1 + this.crew.bounce * 0.025;
     this.truck.setPosition(this.vehicle.x, this.vehicle.y).setRotation(this.vehicle.rotation).setScale(bounceScale);
@@ -103,6 +106,7 @@ export class GameScene extends Phaser.Scene {
       crewAnger: this.crew.anger,
       crewEfficiency: this.crew.efficiency,
       crewReaction: this.reactionLabel(this.crew.reaction),
+      angerReason: this.crew.irritationCause,
       stationName: activeStation?.name ?? '任務完成',
       stationNumber: this.mission.currentStationIndex + 1,
       stationCount: ROUTE_STATIONS.length,

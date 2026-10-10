@@ -41,4 +41,27 @@ describe('CrewDynamics', () => {
     expect(crew.anger).toBe(100);
     expect(crew.reaction).toBe('furious');
   });
+
+  it('increases anger whenever speed exceeds 40 km/h', () => {
+    const crew = new CrewDynamics();
+    const speeding = { ...smooth, speed: 41 / 0.35, longitudinalSpeed: 41 / 0.35 };
+    for (let i = 0; i < 60; i += 1) crew.update(speeding, 0, 1 / 60);
+    expect(crew.anger).toBeGreaterThan(2);
+    expect(crew.irritationCause).toBe('車速超過 40 km/h');
+  });
+
+  it('increases anger when turning above 20 km/h', () => {
+    const crew = new CrewDynamics();
+    const fastCorner = { ...smooth, speed: 25 / 0.35, longitudinalSpeed: 25 / 0.35 };
+    for (let i = 0; i < 60; i += 1) crew.update(fastCorner, 0, 1 / 60, { steeringInput: 1 });
+    expect(crew.anger).toBeGreaterThan(3);
+    expect(crew.irritationCause).toBe('過彎未降至 20 km/h');
+  });
+
+  it('increases anger while residents delay their handoff', () => {
+    const crew = new CrewDynamics();
+    for (let i = 0; i < 60; i += 1) crew.update({ ...smooth, speed: 0 }, 0, 1 / 60, { residentDelaySeconds: 1 });
+    expect(crew.anger).toBeGreaterThan(2);
+    expect(crew.irritationCause).toBe('居民拖延交付');
+  });
 });
