@@ -8,6 +8,7 @@ export class GameScene extends Phaser.Scene {
   private readonly vehicle = new Vehicle();
   private readonly clock = new FixedStepClock();
   private truck!: Phaser.GameObjects.Container;
+  private cameraTarget!: Phaser.GameObjects.Zone;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private brakeKey!: Phaser.Input.Keyboard.Key;
   private hud = new Hud();
@@ -19,9 +20,10 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.setZoom(1.1);
     this.drawStreet();
     this.truck = this.createTruck();
+    this.cameraTarget = this.add.zone(this.vehicle.x, this.vehicle.y, 1, 1);
     this.cursors = this.input.keyboard!.createCursorKeys();
     this.brakeKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-    this.cameras.main.startFollow(this.truck, true, 0.12, 0.12);
+    this.cameras.main.startFollow(this.cameraTarget, true, 0.12, 0.12);
   }
 
   public update(_time: number, deltaMs: number): void {
@@ -33,7 +35,14 @@ export class GameScene extends Phaser.Scene {
       }, dt);
     });
     this.truck.setPosition(this.vehicle.x, this.vehicle.y).setRotation(this.vehicle.rotation);
-    this.hud.update(this.vehicle.speed * 0.35);
+    const lookAheadSeconds = 0.42;
+    const targetX = this.vehicle.x + this.vehicle.velocityX * lookAheadSeconds;
+    const targetY = this.vehicle.y + this.vehicle.velocityY * lookAheadSeconds;
+    this.cameraTarget.setPosition(
+      Phaser.Math.Linear(this.cameraTarget.x, targetX, 0.1),
+      Phaser.Math.Linear(this.cameraTarget.y, targetY, 0.1),
+    );
+    this.hud.update(this.vehicle.speed, this.vehicle.telemetry.lateralSpeed);
   }
 
   private drawStreet(): void {
@@ -52,13 +61,16 @@ export class GameScene extends Phaser.Scene {
 
   private createTruck(): Phaser.GameObjects.Container {
     const g = this.add.graphics();
-    g.fillStyle(0xf2f2e9).fillRect(-42, -22, 50, 44);
-    g.fillStyle(0x3c86a1).fillRect(8, -30, 88, 60);
-    g.lineStyle(3, 0xdde2d7).strokeRect(8, -30, 88, 60);
-    g.fillStyle(0x222a30).fillRect(-25, -26, 14, 8).fillRect(-25, 18, 14, 8).fillRect(70, -35, 14, 8).fillRect(70, 27, 14, 8);
+    // Local +X is the forward direction. Cab and windshield therefore sit on the right.
+    g.fillStyle(0x3c86a1).fillRect(-96, -30, 88, 60);
+    g.lineStyle(3, 0xdde2d7).strokeRect(-96, -30, 88, 60);
+    g.fillStyle(0xf2f2e9).fillRect(-8, -22, 50, 44);
+    g.fillStyle(0x75b7cf).fillRect(20, -17, 13, 34);
+    g.fillStyle(0xe7cb64).fillRect(38, -15, 5, 9).fillRect(38, 6, 5, 9);
+    g.fillStyle(0x222a30).fillRect(11, -26, 14, 8).fillRect(11, 18, 14, 8).fillRect(-84, -35, 14, 8).fillRect(-84, 27, 14, 8);
     // Two AI attendants are visible in the open bed.
-    g.fillStyle(0xf1b281).fillCircle(38, -14, 8).fillCircle(68, 13, 8);
-    g.fillStyle(0x315b78).fillRect(31, -6, 14, 15).fillRect(61, 21, 14, 15);
+    g.fillStyle(0xf1b281).fillCircle(-67, -14, 8).fillCircle(-37, 13, 8);
+    g.fillStyle(0x315b78).fillRect(-74, -6, 14, 15).fillRect(-44, 21, 14, 15);
     return this.add.container(this.vehicle.x, this.vehicle.y, [g]);
   }
 }

@@ -6,9 +6,17 @@ export const WORLD = {
 } as const;
 
 export const VEHICLE = {
-  maxSpeed: 250,
-  acceleration: 180,
-  braking: 440,
-  turnRateRadians: 2.8,
-  drag: 120,
+  maxForwardSpeed: 285,
+  maxReverseSpeed: 95,
+  forwardAcceleration: 205,
+  reverseAcceleration: 130,
+  directionChangeBraking: 330,
+  emergencyBraking: 520,
+  rollingResistance: 28,
+  aerodynamicDrag: 0.42,
+  lateralGrip: 7.5,
+  emergencyLateralGrip: 1.8,
+  lowSpeedTurnRate: 2.7,
+  highSpeedTurnRate: 1.25,
+  steeringResponse: 6.5,
 } as const;
