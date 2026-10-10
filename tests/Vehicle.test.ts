@@ -29,4 +29,13 @@ describe('Vehicle', () => {
     for (let i = 0; i < 20; i += 1) vehicle.update({ ...neutral, brake: true }, 1 / 60);
     expect(vehicle.speed).toBeLessThan(before);
   });
+
+  it('responds quickly when steering changes direction', () => {
+    const vehicle = new Vehicle();
+    for (let i = 0; i < 60; i += 1) vehicle.update({ throttle: 1, steering: 0, brake: false }, 1 / 60);
+    for (let i = 0; i < 20; i += 1) vehicle.update({ throttle: 1, steering: -1, brake: false }, 1 / 60);
+    const afterLeft = vehicle.rotation;
+    for (let i = 0; i < 20; i += 1) vehicle.update({ throttle: 1, steering: 1, brake: false }, 1 / 60);
+    expect(vehicle.rotation).toBeGreaterThan(afterLeft);
+  });
 });

@@ -19,4 +19,5 @@ export const VEHICLE = {
   lowSpeedTurnRate: 2.7,
   highSpeedTurnRate: 1.25,
   steeringResponse: 6.5,
+  steeringReversalResponse: 12,
 } as const;

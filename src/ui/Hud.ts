@@ -51,7 +51,7 @@ export class Hud {
       `車斗 ${data.cargoVolume}/${data.maxCargoVolume} 容量　${data.cargoWeight}/${data.maxCargoWeight} kg`,
       `<span class="anger ${angerClass}">怒氣 ${angerBar} ${Math.round(data.crewAnger)}/100　${data.crewReaction}</span>`,
       `作業效率 ${Math.round(data.crewEfficiency * 100)}%`,
-      '<small>方向鍵駕駛　Space 緊急煞車</small>',
+      '<small>方向鍵／WASD 駕駛　Space 緊急煞車</small>',
     ].join('<br>');
 
     this.settlement.hidden = !data.settlement;

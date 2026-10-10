@@ -10,6 +10,7 @@ import { PotholeSystem } from '../game/PotholeSystem';
 import { RoadGraph, type RoutePoint } from '../game/RoadGraph';
 import { RouteMission } from '../game/RouteMission';
 import { Vehicle } from '../game/Vehicle';
+import { DrivingControls } from '../ui/DrivingControls';
 import { Hud } from '../ui/Hud';
 
 export class GameScene extends Phaser.Scene {
@@ -30,8 +31,7 @@ export class GameScene extends Phaser.Scene {
   private navigationLayer!: Phaser.GameObjects.Graphics;
   private residents: Phaser.GameObjects.Container[] = [];
   private residentItems: Phaser.GameObjects.Graphics[] = [];
-  private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
-  private brakeKey!: Phaser.Input.Keyboard.Key;
+  private controls!: DrivingControls;
   private pendingImpact = 0;
   private hud = new Hud();
 
@@ -46,14 +46,13 @@ export class GameScene extends Phaser.Scene {
     this.createResidents();
     this.truck = this.createTruck();
     this.cameraTarget = this.add.zone(this.vehicle.x, this.vehicle.y, 1, 1);
-    this.cursors = this.input.keyboard!.createCursorKeys();
-    this.brakeKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+    this.controls = new DrivingControls(this.input.keyboard!);
     this.cameras.main.startFollow(this.cameraTarget, true, 0.12, 0.12);
   }
 
   public update(_time: number, deltaMs: number): void {
-    const throttle = Number(this.cursors.up.isDown) - Number(this.cursors.down.isDown);
-    const steering = Number(this.cursors.right.isDown) - Number(this.cursors.left.isDown);
+    const input = this.controls.read();
+    const { throttle, steering } = input;
     this.clock.advance(deltaMs / 1000, (dt) => {
       this.mission.update({
         vehicleX: this.vehicle.x,
@@ -66,7 +65,7 @@ export class GameScene extends Phaser.Scene {
       this.vehicle.update({
         throttle: safetyBrake ? 0 : throttle,
         steering,
-        brake: this.brakeKey.isDown || safetyBrake,
+        brake: input.brake || safetyBrake,
       }, dt);
       const impact = this.potholes.update(this.vehicle.x, this.vehicle.y, this.vehicle.speed);
       this.pendingImpact = Math.max(this.pendingImpact, impact);

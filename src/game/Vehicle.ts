@@ -42,7 +42,9 @@ export class Vehicle {
     let longitudinal = this.velocityX * forwardX + this.velocityY * forwardY;
     let lateral = this.velocityX * rightX + this.velocityY * rightY;
 
-    this.steering = this.approach(this.steering, input.steering, VEHICLE.steeringResponse * dt);
+    const reversingSteering = this.steering * input.steering < 0;
+    const steeringResponse = reversingSteering ? VEHICLE.steeringReversalResponse : VEHICLE.steeringResponse;
+    this.steering = this.approach(this.steering, input.steering, steeringResponse * dt);
     const speedRatio = Math.min(1, Math.abs(longitudinal) / VEHICLE.maxForwardSpeed);
     const turnRate = this.lerp(VEHICLE.lowSpeedTurnRate, VEHICLE.highSpeedTurnRate, speedRatio);
     const steeringAuthority = Math.min(1, Math.abs(longitudinal) / 24);
