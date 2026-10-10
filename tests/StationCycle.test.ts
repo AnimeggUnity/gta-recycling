@@ -42,4 +42,20 @@ describe('StationCycle', () => {
     station.update({ vehicleX: 150, vehicleY: 100, vehicleSpeed: 20, attemptingToDrive: true }, 1 / 60);
     expect(station.phase).toBe('departed');
   });
+
+  it('slows collection work when the crew is angry', () => {
+    const normal = new StationCycle(definition, new CargoHold());
+    const angry = new StationCycle(definition, new CargoHold());
+    for (const station of [normal, angry]) {
+      station.update({ vehicleX: 100, vehicleY: 100, vehicleSpeed: 0, attemptingToDrive: false }, 0.1);
+      station.update({ vehicleX: 100, vehicleY: 100, vehicleSpeed: 0, attemptingToDrive: false }, 0.8);
+    }
+
+    for (let i = 0; i < 480; i += 1) {
+      normal.update({ vehicleX: 100, vehicleY: 100, vehicleSpeed: 0, attemptingToDrive: false, crewEfficiency: 1 }, 1 / 60);
+      angry.update({ vehicleX: 100, vehicleY: 100, vehicleSpeed: 0, attemptingToDrive: false, crewEfficiency: 0.55 }, 1 / 60);
+    }
+
+    expect(normal.completedDeliveries).toBeGreaterThan(angry.completedDeliveries);
+  });
 });

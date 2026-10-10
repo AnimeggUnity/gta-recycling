@@ -1,8 +1,11 @@
 import Phaser from 'phaser';
 import { WORLD } from '../config/balance';
+import { POTHOLES } from '../config/hazards';
 import { FIRST_STATION } from '../config/stations';
 import { CargoHold, type RecyclingType } from '../game/CargoHold';
+import { CrewDynamics, type CrewReaction } from '../game/CrewDynamics';
 import { FixedStepClock } from '../game/FixedStepClock';
+import { PotholeSystem } from '../game/PotholeSystem';
 import { StationCycle } from '../game/StationCycle';
 import { Vehicle } from '../game/Vehicle';
 import { Hud } from '../ui/Hud';
@@ -11,16 +14,20 @@ export class GameScene extends Phaser.Scene {
   private readonly vehicle = new Vehicle();
   private readonly clock = new FixedStepClock();
   private readonly cargo = new CargoHold();
+  private readonly crew = new CrewDynamics();
+  private readonly potholes = new PotholeSystem(POTHOLES);
   private readonly station = new StationCycle(FIRST_STATION, this.cargo);
   private truck!: Phaser.GameObjects.Container;
   private attendantA!: Phaser.GameObjects.Container;
   private attendantB!: Phaser.GameObjects.Container;
   private cargoLayer!: Phaser.GameObjects.Graphics;
+  private reactionText!: Phaser.GameObjects.Text;
   private cameraTarget!: Phaser.GameObjects.Zone;
   private stopMarker!: Phaser.GameObjects.Graphics;
   private residents: Phaser.GameObjects.Container[] = [];
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private brakeKey!: Phaser.Input.Keyboard.Key;
+  private pendingImpact = 0;
   private hud = new Hud();
 
   public constructor() { super('GameScene'); }
@@ -47,6 +54,7 @@ export class GameScene extends Phaser.Scene {
         vehicleY: this.vehicle.y,
         vehicleSpeed: this.vehicle.speed,
         attemptingToDrive: throttle !== 0,
+        crewEfficiency: this.crew.efficiency,
       }, dt);
       const safetyBrake = this.station.departureLocked && throttle !== 0;
       this.vehicle.update({
@@ -54,8 +62,16 @@ export class GameScene extends Phaser.Scene {
         steering,
         brake: this.brakeKey.isDown || safetyBrake,
       }, dt);
+      const impact = this.potholes.update(this.vehicle.x, this.vehicle.y, this.vehicle.speed);
+      this.pendingImpact = Math.max(this.pendingImpact, impact);
+      this.crew.update(this.vehicle.telemetry, impact, dt);
     });
-    this.truck.setPosition(this.vehicle.x, this.vehicle.y).setRotation(this.vehicle.rotation);
+    const bounceScale = 1 + this.crew.bounce * 0.025;
+    this.truck.setPosition(this.vehicle.x, this.vehicle.y).setRotation(this.vehicle.rotation).setScale(bounceScale);
+    if (this.pendingImpact > 0) {
+      this.cameras.main.shake(110, 0.0025 + this.pendingImpact * 0.004);
+      this.pendingImpact = 0;
+    }
     this.updateStationVisuals();
     this.updateAttendants();
     this.updateCargoVisuals();
@@ -76,6 +92,9 @@ export class GameScene extends Phaser.Scene {
       maxCargoVolume: this.cargo.maxVolume,
       cargoWeight: this.cargo.weight,
       maxCargoWeight: this.cargo.maxWeight,
+      crewAnger: this.crew.anger,
+      crewEfficiency: this.crew.efficiency,
+      crewReaction: this.reactionLabel(this.crew.reaction),
     });
   }
 
@@ -85,6 +104,11 @@ export class GameScene extends Phaser.Scene {
     g.fillStyle(0x3e454c).fillRect(0, 390, WORLD.width, 260);
     g.fillStyle(0x3e454c).fillRect(650, 0, 260, WORLD.height);
     g.lineStyle(4, 0xf7df76, 0.8).lineBetween(0, 520, WORLD.width, 520).lineBetween(780, 0, 780, WORLD.height);
+    for (const pothole of POTHOLES) {
+      g.fillStyle(0x20262b, 0.9).fillCircle(pothole.x, pothole.y, pothole.radius);
+      g.lineStyle(2, 0x151a1d, 0.8).strokeCircle(pothole.x, pothole.y, pothole.radius + 3);
+      g.fillStyle(0x343b40, 0.7).fillCircle(pothole.x - 4, pothole.y - 3, pothole.radius * 0.35);
+    }
     for (const [x, y, w, h, color] of [[80, 80, 400, 230, 0xd97a5d], [1030, 90, 360, 250, 0x6a96b5], [120, 710, 390, 160, 0xf2c768], [1050, 710, 370, 150, 0xa97cba]] as const) {
       g.fillStyle(color).fillRect(x, y, w, h);
       g.fillStyle(0x252f38).fillRect(x + 18, y + 25, w - 36, 22);
@@ -107,7 +131,15 @@ export class GameScene extends Phaser.Scene {
     this.cargoLayer = this.add.graphics();
     this.attendantA = this.createAttendant(-42, -14, 0x315b78);
     this.attendantB = this.createAttendant(-67, 13, 0x476e3d);
-    return this.add.container(this.vehicle.x, this.vehicle.y, [g, this.cargoLayer, this.attendantA, this.attendantB]);
+    this.reactionText = this.add.text(-57, -52, '', {
+      fontFamily: 'monospace',
+      fontSize: '19px',
+      fontStyle: 'bold',
+      color: '#ffef8a',
+      backgroundColor: '#1b2229dd',
+      padding: { x: 4, y: 2 },
+    }).setOrigin(0.5);
+    return this.add.container(this.vehicle.x, this.vehicle.y, [g, this.cargoLayer, this.attendantA, this.attendantB, this.reactionText]);
   }
 
   private createAttendant(x: number, y: number, shirtColor: number): Phaser.GameObjects.Container {
@@ -164,9 +196,17 @@ export class GameScene extends Phaser.Scene {
     else if (state === 'sorting' || state === 'organizing') target = sorting;
     else if (state === 'returning') target = this.mixPoint(sorting, riding, p);
 
-    this.attendantA.setPosition(target.x, target.y);
+    const ridingSway = state === 'riding' || state === 'waiting' ? 1 : 0.25;
+    const swayX = this.crew.swayForward * 8 * ridingSway;
+    const swayY = this.crew.swayLateral * 10 * ridingSway;
+    this.attendantA.setPosition(target.x + swayX, target.y + swayY);
     const helperMoving = state === 'organizing';
-    this.attendantB.setPosition(helperMoving ? -68 + Math.sin(p * Math.PI * 2) * 18 : -67, helperMoving ? 13 - p * 12 : 13);
+    this.attendantB.setPosition(
+      (helperMoving ? -68 + Math.sin(p * Math.PI * 2) * 18 : -67) + swayX,
+      (helperMoving ? 13 - p * 12 : 13) + swayY,
+    );
+    const reaction = { calm: '', annoyed: '…', angry: '!', furious: '怒' }[this.crew.reaction];
+    this.reactionText.setText(reaction).setVisible(reaction !== '');
   }
 
   private updateCargoVisuals(): void {
@@ -193,5 +233,9 @@ export class GameScene extends Phaser.Scene {
 
   private smoothStep(value: number): number {
     return value * value * (3 - 2 * value);
+  }
+
+  private reactionLabel(reaction: CrewReaction): string {
+    return { calm: '心情平穩', annoyed: '開始不耐煩', angry: '正在生氣', furious: '非常火大' }[reaction];
   }
 }

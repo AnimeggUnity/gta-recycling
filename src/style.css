@@ -5,3 +5,7 @@ body { margin: 0; min-height: 100vh; display: grid; place-items: center; overflo
 .hud { position: fixed; top: 18px; left: 18px; z-index: 2; padding: 12px 14px; line-height: 1.45; background: #15202be8; border-left: 4px solid #f2c65d; color: #edf5e7; font-size: 14px; pointer-events: none; }
 .hud small { color: #b7c5be; }
 .hud-status { color: #f7d568; font-weight: 700; }
+.anger { font-weight: 700; letter-spacing: 0.02em; }
+.anger.calm { color: #74d68a; }
+.anger.warning { color: #f7d568; }
+.anger.danger { color: #ff756b; }

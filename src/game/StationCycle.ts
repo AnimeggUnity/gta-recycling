@@ -17,6 +17,7 @@ export type StationObservation = Readonly<{
   vehicleY: number;
   vehicleSpeed: number;
   attemptingToDrive: boolean;
+  crewEfficiency?: number;
 }>;
 
 export type ResidentSnapshot = Readonly<{
@@ -69,6 +70,7 @@ export class StationCycle {
     );
     const insideStop = distance <= this.definition.stop.radius;
     const safelyStopped = observation.vehicleSpeed <= 7;
+    const workRate = this.clamp(observation.crewEfficiency ?? 1, 0.5, 1);
 
     if (this.departureLocked && observation.attemptingToDrive) this.warningTimer = 1.4;
 
@@ -88,10 +90,10 @@ export class StationCycle {
         }
         break;
       case 'servicing':
-        this.updateService(dt);
+        this.updateService(dt, workRate);
         break;
       case 'organizing':
-        this.updateOrganizing(dt);
+        this.updateOrganizing(dt, workRate);
         break;
       case 'ready':
         if (distance > this.definition.stop.exitRadius) this.phase = 'departed';
@@ -137,9 +139,9 @@ export class StationCycle {
     this.actionElapsed = 0;
   }
 
-  private updateService(dt: number): void {
+  private updateService(dt: number, workRate: number): void {
     this.serviceElapsed += dt;
-    this.actionElapsed += dt;
+    this.actionElapsed += dt * workRate;
     this.workerProgress = this.clamp(this.actionElapsed / ACTION_DURATION[this.action], 0, 1);
 
     if (this.action === 'resident-arriving') this.workerState = 'waiting';
@@ -168,8 +170,8 @@ export class StationCycle {
     this.workerProgress = 0;
   }
 
-  private updateOrganizing(dt: number): void {
-    this.organizingElapsed += dt;
+  private updateOrganizing(dt: number, workRate: number): void {
+    this.organizingElapsed += dt * workRate;
     if (this.organizingElapsed < 1.6) {
       this.workerState = 'organizing';
       this.workerProgress = this.organizingElapsed / 1.6;
