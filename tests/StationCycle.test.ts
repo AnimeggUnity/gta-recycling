@@ -1,0 +1,45 @@
+import { describe, expect, it } from 'vitest';
+import { CargoHold } from '../src/game/CargoHold';
+import { StationCycle } from '../src/game/StationCycle';
+
+const definition = {
+  name: '測試站',
+  stop: { x: 100, y: 100, radius: 20, exitRadius: 40 },
+  deliveries: [
+    { type: 'paper' as const, volume: 12, weight: 5 },
+    { type: 'metal' as const, volume: 9, weight: 8 },
+  ],
+};
+
+describe('StationCycle', () => {
+  it('requires a complete stop before starting service', () => {
+    const station = new StationCycle(definition, new CargoHold());
+    station.update({ vehicleX: 100, vehicleY: 100, vehicleSpeed: 30, attemptingToDrive: false }, 1);
+    expect(station.phase).toBe('stopping');
+    station.update({ vehicleX: 100, vehicleY: 100, vehicleSpeed: 30, attemptingToDrive: false }, 1);
+    expect(station.phase).toBe('stopping');
+    station.update({ vehicleX: 100, vehicleY: 100, vehicleSpeed: 0, attemptingToDrive: false }, 0.8);
+    expect(station.phase).toBe('servicing');
+  });
+
+  it('loads every delivery and unlocks departure only after the worker returns', () => {
+    const cargo = new CargoHold();
+    const station = new StationCycle(definition, cargo);
+    station.update({ vehicleX: 100, vehicleY: 100, vehicleSpeed: 0, attemptingToDrive: false }, 0.1);
+    station.update({ vehicleX: 100, vehicleY: 100, vehicleSpeed: 0, attemptingToDrive: false }, 0.8);
+    expect(station.departureLocked).toBe(true);
+
+    for (let i = 0; i < 900; i += 1) {
+      station.update({ vehicleX: 100, vehicleY: 100, vehicleSpeed: 0, attemptingToDrive: false }, 1 / 60);
+    }
+
+    expect(station.phase).toBe('ready');
+    expect(station.workerState).toBe('riding');
+    expect(station.departureLocked).toBe(false);
+    expect(cargo.volume).toBe(21);
+    expect(cargo.weight).toBe(13);
+
+    station.update({ vehicleX: 150, vehicleY: 100, vehicleSpeed: 20, attemptingToDrive: true }, 1 / 60);
+    expect(station.phase).toBe('departed');
+  });
+});

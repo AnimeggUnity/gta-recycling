@@ -1,14 +1,24 @@
 import Phaser from 'phaser';
 import { WORLD } from '../config/balance';
+import { FIRST_STATION } from '../config/stations';
+import { CargoHold, type RecyclingType } from '../game/CargoHold';
 import { FixedStepClock } from '../game/FixedStepClock';
+import { StationCycle } from '../game/StationCycle';
 import { Vehicle } from '../game/Vehicle';
 import { Hud } from '../ui/Hud';
 
 export class GameScene extends Phaser.Scene {
   private readonly vehicle = new Vehicle();
   private readonly clock = new FixedStepClock();
+  private readonly cargo = new CargoHold();
+  private readonly station = new StationCycle(FIRST_STATION, this.cargo);
   private truck!: Phaser.GameObjects.Container;
+  private attendantA!: Phaser.GameObjects.Container;
+  private attendantB!: Phaser.GameObjects.Container;
+  private cargoLayer!: Phaser.GameObjects.Graphics;
   private cameraTarget!: Phaser.GameObjects.Zone;
+  private stopMarker!: Phaser.GameObjects.Graphics;
+  private residents: Phaser.GameObjects.Container[] = [];
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private brakeKey!: Phaser.Input.Keyboard.Key;
   private hud = new Hud();
@@ -19,6 +29,8 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, WORLD.width, WORLD.height);
     this.cameras.main.setZoom(1.1);
     this.drawStreet();
+    this.stopMarker = this.add.graphics();
+    this.createResidents();
     this.truck = this.createTruck();
     this.cameraTarget = this.add.zone(this.vehicle.x, this.vehicle.y, 1, 1);
     this.cursors = this.input.keyboard!.createCursorKeys();
@@ -27,14 +39,26 @@ export class GameScene extends Phaser.Scene {
   }
 
   public update(_time: number, deltaMs: number): void {
+    const throttle = Number(this.cursors.up.isDown) - Number(this.cursors.down.isDown);
+    const steering = Number(this.cursors.right.isDown) - Number(this.cursors.left.isDown);
     this.clock.advance(deltaMs / 1000, (dt) => {
+      this.station.update({
+        vehicleX: this.vehicle.x,
+        vehicleY: this.vehicle.y,
+        vehicleSpeed: this.vehicle.speed,
+        attemptingToDrive: throttle !== 0,
+      }, dt);
+      const safetyBrake = this.station.departureLocked && throttle !== 0;
       this.vehicle.update({
-        throttle: Number(this.cursors.up.isDown) - Number(this.cursors.down.isDown),
-        steering: Number(this.cursors.right.isDown) - Number(this.cursors.left.isDown),
-        brake: this.brakeKey.isDown,
+        throttle: safetyBrake ? 0 : throttle,
+        steering,
+        brake: this.brakeKey.isDown || safetyBrake,
       }, dt);
     });
     this.truck.setPosition(this.vehicle.x, this.vehicle.y).setRotation(this.vehicle.rotation);
+    this.updateStationVisuals();
+    this.updateAttendants();
+    this.updateCargoVisuals();
     const lookAheadSeconds = 0.42;
     const targetX = this.vehicle.x + this.vehicle.velocityX * lookAheadSeconds;
     const targetY = this.vehicle.y + this.vehicle.velocityY * lookAheadSeconds;
@@ -42,7 +66,17 @@ export class GameScene extends Phaser.Scene {
       Phaser.Math.Linear(this.cameraTarget.x, targetX, 0.1),
       Phaser.Math.Linear(this.cameraTarget.y, targetY, 0.1),
     );
-    this.hud.update(this.vehicle.speed, this.vehicle.telemetry.lateralSpeed);
+    const stop = FIRST_STATION.stop;
+    this.hud.update({
+      speed: this.vehicle.speed,
+      lateralSpeed: this.vehicle.telemetry.lateralSpeed,
+      distanceMeters: Math.round(Math.hypot(this.vehicle.x - stop.x, this.vehicle.y - stop.y) * 2.5),
+      status: this.station.getStatusText(),
+      cargoVolume: this.cargo.volume,
+      maxCargoVolume: this.cargo.maxVolume,
+      cargoWeight: this.cargo.weight,
+      maxCargoWeight: this.cargo.maxWeight,
+    });
   }
 
   private drawStreet(): void {
@@ -57,6 +91,8 @@ export class GameScene extends Phaser.Scene {
     }
     g.fillStyle(0xf8f2da).fillRect(1080, 365, 200, 50);
     this.add.text(1100, 377, '和平東路收運站', { fontFamily: 'monospace', fontSize: '18px', color: '#26313a' });
+    g.fillStyle(0x27323a).fillRect(1184, 337, 34, 28);
+    this.add.text(1190, 342, '出口', { fontFamily: 'monospace', fontSize: '12px', color: '#f8f2da' });
   }
 
   private createTruck(): Phaser.GameObjects.Container {
@@ -68,9 +104,94 @@ export class GameScene extends Phaser.Scene {
     g.fillStyle(0x75b7cf).fillRect(20, -17, 13, 34);
     g.fillStyle(0xe7cb64).fillRect(38, -15, 5, 9).fillRect(38, 6, 5, 9);
     g.fillStyle(0x222a30).fillRect(11, -26, 14, 8).fillRect(11, 18, 14, 8).fillRect(-84, -35, 14, 8).fillRect(-84, 27, 14, 8);
-    // Two AI attendants are visible in the open bed.
-    g.fillStyle(0xf1b281).fillCircle(-67, -14, 8).fillCircle(-37, 13, 8);
-    g.fillStyle(0x315b78).fillRect(-74, -6, 14, 15).fillRect(-44, 21, 14, 15);
-    return this.add.container(this.vehicle.x, this.vehicle.y, [g]);
+    this.cargoLayer = this.add.graphics();
+    this.attendantA = this.createAttendant(-42, -14, 0x315b78);
+    this.attendantB = this.createAttendant(-67, 13, 0x476e3d);
+    return this.add.container(this.vehicle.x, this.vehicle.y, [g, this.cargoLayer, this.attendantA, this.attendantB]);
+  }
+
+  private createAttendant(x: number, y: number, shirtColor: number): Phaser.GameObjects.Container {
+    const person = this.add.graphics();
+    person.fillStyle(shirtColor).fillRect(-7, 4, 14, 15);
+    person.fillStyle(0xf1b281).fillCircle(0, 0, 8);
+    return this.add.container(x, y, [person]);
+  }
+
+  private createResidents(): void {
+    const colors = [0xa84c45, 0x6e55a4, 0x3c7d63, 0xb57435];
+    this.residents = FIRST_STATION.deliveries.map((delivery, index) => {
+      const person = this.add.graphics();
+      person.fillStyle(colors[index]).fillRect(-8, 5, 16, 20);
+      person.fillStyle(0xf1b281).fillCircle(0, 0, 8);
+      person.fillStyle(this.recyclingColor(delivery.type)).fillRect(10, 7, 12, 12);
+      return this.add.container(FIRST_STATION.buildingExit.x, FIRST_STATION.buildingExit.y, [person]).setVisible(false);
+    });
+  }
+
+  private updateStationVisuals(): void {
+    const stop = FIRST_STATION.stop;
+    const ready = this.station.phase === 'ready' || this.station.phase === 'departed';
+    this.stopMarker.clear();
+    this.stopMarker.fillStyle(ready ? 0x5ec76f : 0xf1c84c, 0.15).fillRect(stop.x - 78, stop.y - 40, 156, 80);
+    this.stopMarker.lineStyle(4, ready ? 0x5ec76f : 0xf1c84c, 0.95).strokeRect(stop.x - 78, stop.y - 40, 156, 80);
+    this.stopMarker.fillStyle(ready ? 0x5ec76f : 0xf1c84c).fillCircle(stop.x, stop.y, 6);
+
+    const snapshots = this.station.getResidents();
+    snapshots.forEach((snapshot, index) => {
+      const resident = this.residents[index];
+      resident.setVisible(snapshot.visible);
+      if (!snapshot.visible) return;
+      const queueX = FIRST_STATION.queueStart.x + snapshot.queueIndex * 30;
+      const queueY = FIRST_STATION.queueStart.y;
+      resident.setPosition(
+        Phaser.Math.Linear(FIRST_STATION.buildingExit.x, queueX, snapshot.entranceProgress),
+        Phaser.Math.Linear(FIRST_STATION.buildingExit.y, queueY, snapshot.entranceProgress),
+      );
+    });
+  }
+
+  private updateAttendants(): void {
+    const state = this.station.workerState;
+    const p = this.smoothStep(this.station.workerProgress);
+    const riding = { x: -42, y: -14 };
+    const tail = { x: -103, y: -14 };
+    const sorting = { x: -62, y: 8 };
+    let target = riding;
+
+    if (state === 'moving-to-tail') target = this.mixPoint(riding, tail, p);
+    else if (state === 'receiving') target = tail;
+    else if (state === 'carrying') target = this.mixPoint(tail, sorting, p);
+    else if (state === 'sorting' || state === 'organizing') target = sorting;
+    else if (state === 'returning') target = this.mixPoint(sorting, riding, p);
+
+    this.attendantA.setPosition(target.x, target.y);
+    const helperMoving = state === 'organizing';
+    this.attendantB.setPosition(helperMoving ? -68 + Math.sin(p * Math.PI * 2) * 18 : -67, helperMoving ? 13 - p * 12 : 13);
+  }
+
+  private updateCargoVisuals(): void {
+    this.cargoLayer.clear();
+    const types: RecyclingType[] = ['paper', 'plastic', 'metal', 'glass'];
+    let slot = 0;
+    for (const type of types) {
+      for (let i = 0; i < this.cargo.counts[type]; i += 1) {
+        const x = -87 + (slot % 4) * 17;
+        const y = -23 + Math.floor(slot / 4) * 18;
+        this.cargoLayer.fillStyle(this.recyclingColor(type)).fillRect(x, y, 13, 13);
+        slot += 1;
+      }
+    }
+  }
+
+  private recyclingColor(type: RecyclingType): number {
+    return { paper: 0xe8d49b, plastic: 0x67b8d6, metal: 0xaeb7bf, glass: 0x70b27c }[type];
+  }
+
+  private mixPoint(from: Readonly<{ x: number; y: number }>, to: Readonly<{ x: number; y: number }>, t: number): { x: number; y: number } {
+    return { x: Phaser.Math.Linear(from.x, to.x, t), y: Phaser.Math.Linear(from.y, to.y, t) };
+  }
+
+  private smoothStep(value: number): number {
+    return value * value * (3 - 2 * value);
   }
 }
