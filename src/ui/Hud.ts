@@ -1,3 +1,7 @@
+import { ROUTE_STATIONS } from '../config/stations';
+import { WORLD } from '../config/balance';
+import type { RoutePoint } from '../game/RoadGraph';
+
 export class Hud {
   public readonly element: HTMLDivElement;
   private readonly settlement: HTMLDivElement;
@@ -32,6 +36,10 @@ export class Hud {
     etaSeconds: number;
     scheduledTime: string;
     delaySeconds: number;
+    vehicleX: number;
+    vehicleY: number;
+    vehicleRotation: number;
+    navigationPath: readonly RoutePoint[];
     settlement?: Readonly<{
       score: number;
       totalSeconds: number;
@@ -41,40 +49,54 @@ export class Hud {
     }>;
   }>): void {
     const handling = Math.abs(data.lateralSpeed) > 14 ? '輪胎滑動' : '抓地正常';
-    const angerBlocks = Math.round(data.crewAnger / 10);
-    const angerBar = `${'■'.repeat(angerBlocks)}${'□'.repeat(10 - angerBlocks)}`;
     const angerClass = data.crewAnger >= 50 ? 'danger' : data.crewAnger >= 25 ? 'warning' : 'calm';
-    const delay = data.settlement ? '路線完成' : data.delaySeconds > 1 ? `延誤 ${Math.round(data.delaySeconds)} 秒` : `預估提早 ${Math.round(Math.abs(data.delaySeconds))} 秒`;
-    const markup = [
-      `<strong>第 ${Math.min(data.stationNumber, data.stationCount)}/${data.stationCount} 站：${data.stationName}</strong>`,
-      `距離 ${data.distanceMeters} m　ETA ${this.duration(data.etaSeconds)}　預定 ${data.scheduledTime}`,
-      `${delay}　車速 ${Math.round(data.speed * 0.35)} km/h　${handling}`,
-      `<span class="hud-status">${data.status}</span>`,
-      `車斗 ${data.cargoVolume}/${data.maxCargoVolume} 容量　${data.cargoWeight}/${data.maxCargoWeight} kg`,
-      `<span class="anger ${angerClass}">怒氣 ${angerBar} ${Math.round(data.crewAnger)}/100　${data.crewReaction}</span>`,
-      `<small>怒氣原因：${data.angerReason}</small>`,
-      `作業效率 ${Math.round(data.crewEfficiency * 100)}%`,
-      '<small>方向鍵／WASD 駕駛　Space 緊急煞車</small>',
-    ].join('<br>');
+    const delay = data.settlement ? '路線完成' : data.delaySeconds > 1 ? `延誤 +${Math.round(data.delaySeconds)}s` : `提早 ${Math.round(Math.abs(data.delaySeconds))}s`;
+    const speed = Math.round(data.speed * 0.35);
+    const overspeed = data.speed * 0.35 > 40;
+    const nextPoint = data.navigationPath.find((point) => Math.hypot(point.x - data.vehicleX, point.y - data.vehicleY) > 15);
+    const bearing = nextPoint ? Math.atan2(nextPoint.y - data.vehicleY, nextPoint.x - data.vehicleX) - data.vehicleRotation : 0;
+    const markup = `
+      <section class="nav-panel panel">
+        <div class="eyebrow">TAIWAN RECYCLING RUN <span>收運勤務</span></div>
+        <div class="brand">街頭回收隊<span class="route-counter">${Math.min(data.stationNumber, data.stationCount)} / ${data.stationCount} 站</span></div>
+        <div class="destination"><span class="turn-icon"><i style="transform:rotate(${bearing}rad)">↑</i></span><div><small>下一個收運站</small><strong>${data.stationName}</strong></div></div>
+        <div class="nav-metrics"><div><b>${Math.round(data.distanceMeters)}</b><small>公尺</small></div><div><b>${this.duration(data.etaSeconds)}</b><small>預估抵達 ETA</small></div></div>
+        <div class="schedule"><span>預定 ${data.scheduledTime}</span><span class="${data.delaySeconds > 1 ? 'warning' : 'calm'}">${delay}</span></div>
+        <div class="hud-status">${data.status}</div>
+      </section>
+      <section class="map-panel panel"><div class="eyebrow">路線圖 <span>LIVE GPS</span></div>${this.minimap(data)}</section>
+      <section class="crew-panel panel">
+        <div class="eyebrow">隨車人員 <span>效率 ${Math.round(data.crewEfficiency * 100)}%</span></div>
+        <div class="crew-heading"><strong class="${angerClass}">${data.crewReaction}</strong><span class="${angerClass}">怒氣 <b>${Math.round(data.crewAnger)}</b><small> / 100</small></span></div>
+        <div class="meter ${angerClass}"><i style="width:${this.percent(data.crewAnger, 100)}%"></i></div>
+        <div class="anger-reason">${data.angerReason}</div>
+        <div class="cargo-heading"><span>車斗容量</span><span>${data.cargoVolume} / ${data.maxCargoVolume}</span></div>
+        <div class="meter cargo-meter"><i style="width:${this.percent(data.cargoVolume, data.maxCargoVolume)}%"></i></div>
+        <div class="cargo-legend"><span>■ 紙　<span>■ 塑膠</span>　<span>■ 金屬</span>　<span>■ 玻璃</span></span><span>${data.cargoWeight}/${data.maxCargoWeight} kg</span></div>
+      </section>
+      <section class="speed-panel panel ${overspeed ? 'speed-warning' : ''}"><div class="eyebrow">${handling}<span>${overspeed ? '超速' : '車速'}</span></div><div class="speed-number">${speed.toString().padStart(2, '0')}<small>km/h</small></div><div class="speed-note">直線 ≤40　轉彎 ≤20</div></section>
+      <div class="controls-hint"><kbd>WASD</kbd> / <kbd>↑↓←→</kbd> 駕駛 <span>·</span> <kbd>SPACE</kbd> 緊急煞車</div>`;
     if (this.element.innerHTML !== markup) this.element.innerHTML = markup;
 
     this.settlement.hidden = !data.settlement;
     if (data.settlement) {
-      const settlementMarkup = [
-        '<strong>三站收運完成</strong>',
-        `<b>${data.settlement.score}</b> 分`,
-        `完成時間 ${this.duration(data.settlement.totalSeconds)}`,
-        `累計延誤 ${Math.round(data.settlement.totalDelaySeconds)} 秒`,
-        `最高怒氣 ${Math.round(data.settlement.peakAnger)}/100`,
-        `完成站數 ${data.settlement.stationCount}/${data.stationCount}`,
-        '<button type="button" id="restart-mission">重新出車</button>',
-      ].join('<br>');
+      const settlementMarkup = `<div class="eyebrow">SHIFT COMPLETE / 收運報告</div><strong>辛苦了，收工！</strong><p>三站回收物已完成收運</p><div class="score"><b>${data.settlement.score}</b><span>勤務評分</span></div><div class="report-row"><span>完成時間</span><span>${this.duration(data.settlement.totalSeconds)}</span></div><div class="report-row"><span>累計延誤</span><span>${Math.round(data.settlement.totalDelaySeconds)} 秒</span></div><div class="report-row"><span>最高怒氣</span><span>${Math.round(data.settlement.peakAnger)} / 100</span></div><div class="report-row"><span>完成站數</span><span>${data.settlement.stationCount} / ${data.stationCount}</span></div><button type="button" id="restart-mission">重新出車 →</button>`;
       if (this.settlementMarkup !== settlementMarkup) {
         this.settlementMarkup = settlementMarkup;
         this.settlement.innerHTML = settlementMarkup;
         this.settlement.querySelector('button')?.addEventListener('click', () => window.location.reload());
       }
     }
+  }
+
+  private percent(value: number, maximum: number): number {
+    return Math.min(100, Math.max(0, value / maximum * 100));
+  }
+
+  private minimap(data: { vehicleX: number; vehicleY: number; vehicleRotation: number; navigationPath: readonly RoutePoint[]; stationNumber: number }): string {
+    const points = data.navigationPath.map((point) => `${Math.round(point.x)},${Math.round(point.y)}`).join(' ');
+    const stops = ROUTE_STATIONS.map((station, index) => `<circle cx="${station.stop.x}" cy="${station.stop.y}" r="35" fill="${index + 1 < data.stationNumber ? '#7bb997' : index + 1 === data.stationNumber ? '#f1cd7d' : '#82928c'}"/><text x="${station.stop.x}" y="${station.stop.y + 12}" text-anchor="middle" fill="#203739" font-size="38" font-weight="bold">${index + 1}</text>`).join('');
+    return `<svg viewBox="0 0 ${WORLD.width} ${WORLD.height}" role="img" aria-label="即時收運路線與車輛位置"><rect width="${WORLD.width}" height="${WORLD.height}" fill="#364d48"/><path d="M0 520H1600 M780 0V960" stroke="#21363c" stroke-width="220"/><path d="M0 520H1600 M780 0V960" stroke="#637570" stroke-width="6"/><polyline points="${points}" fill="none" stroke="#7ed4b9" stroke-width="20" stroke-linejoin="round"/>${stops}<g transform="translate(${Math.round(data.vehicleX)} ${Math.round(data.vehicleY)}) rotate(${Math.round(data.vehicleRotation * 180 / Math.PI)})"><circle r="45" fill="#dcecd6" fill-opacity=".15"/><path d="M38 0L-25 -24L-17 0L-25 24Z" fill="#f9eee0" stroke="#223d3e" stroke-width="6"/></g></svg>`;
   }
 
   private duration(seconds: number): string {

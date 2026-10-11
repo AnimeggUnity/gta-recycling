@@ -12,6 +12,8 @@ import { RouteMission } from '../game/RouteMission';
 import { Vehicle } from '../game/Vehicle';
 import { DrivingControls } from '../ui/DrivingControls';
 import { Hud } from '../ui/Hud';
+import { drawStreetArt } from './StreetArt';
+import { drawPerson, drawTruckBody } from './TruckArt';
 
 export class GameScene extends Phaser.Scene {
   private readonly vehicle = new Vehicle();
@@ -35,13 +37,14 @@ export class GameScene extends Phaser.Scene {
   private controls!: DrivingControls;
   private pendingImpact = 0;
   private hud = new Hud();
+  private hudElapsedMs = 100;
 
   public constructor() { super('GameScene'); }
 
   public create(): void {
     this.cameras.main.setBounds(0, 0, WORLD.width, WORLD.height);
     this.cameras.main.setZoom(1.1);
-    this.drawStreet();
+    drawStreetArt(this);
     this.navigationLayer = this.add.graphics();
     this.stopMarker = this.add.graphics();
     this.createResidents();
@@ -93,6 +96,10 @@ export class GameScene extends Phaser.Scene {
     );
     const activeStation = this.mission.activeStation;
     const activeCycle = this.mission.activeCycle;
+    // DOM panels refresh at 10Hz; world rendering and fixed-step rules stay unchanged.
+    this.hudElapsedMs += deltaMs;
+    if (this.hudElapsedMs < 100) return;
+    this.hudElapsedMs %= 100;
     this.hud.update({
       speed: this.vehicle.speed,
       lateralSpeed: this.vehicle.telemetry.lateralSpeed,
@@ -113,48 +120,16 @@ export class GameScene extends Phaser.Scene {
       scheduledTime: navigation.scheduledTime,
       delaySeconds: navigation.delaySeconds,
       settlement: this.mission.getSettlement(),
+      vehicleX: this.vehicle.x,
+      vehicleY: this.vehicle.y,
+      vehicleRotation: this.vehicle.rotation,
+      navigationPath: navigation.path,
     });
-  }
-
-  private drawStreet(): void {
-    const g = this.add.graphics();
-    g.fillStyle(0x87958b).fillRect(0, 0, WORLD.width, WORLD.height);
-    g.fillStyle(0x3e454c).fillRect(0, 390, WORLD.width, 260);
-    g.fillStyle(0x3e454c).fillRect(650, 0, 260, WORLD.height);
-    g.lineStyle(4, 0xf7df76, 0.8).lineBetween(0, 520, WORLD.width, 520).lineBetween(780, 0, 780, WORLD.height);
-    for (const pothole of POTHOLES) {
-      g.fillStyle(0x20262b, 0.9).fillCircle(pothole.x, pothole.y, pothole.radius);
-      g.lineStyle(2, 0x151a1d, 0.8).strokeCircle(pothole.x, pothole.y, pothole.radius + 3);
-      g.fillStyle(0x343b40, 0.7).fillCircle(pothole.x - 4, pothole.y - 3, pothole.radius * 0.35);
-    }
-    for (const [x, y, w, h, color] of [[80, 80, 400, 230, 0xd97a5d], [1030, 90, 360, 250, 0x6a96b5], [120, 710, 390, 160, 0xf2c768], [1050, 710, 370, 150, 0xa97cba]] as const) {
-      g.fillStyle(color).fillRect(x, y, w, h);
-      g.fillStyle(0x252f38).fillRect(x + 18, y + 25, w - 36, 22);
-    }
-    const signs = [
-      { x: 1080, y: 365, w: 220, name: ROUTE_STATIONS[0].name },
-      { x: 1080, y: 285, w: 250, name: ROUTE_STATIONS[1].name },
-      { x: 130, y: 260, w: 250, name: ROUTE_STATIONS[2].name },
-    ];
-    for (const sign of signs) {
-      g.fillStyle(0xf8f2da).fillRect(sign.x, sign.y, sign.w, 42);
-      this.add.text(sign.x + 12, sign.y + 11, sign.name, { fontFamily: 'monospace', fontSize: '16px', color: '#26313a' });
-    }
-    for (const station of ROUTE_STATIONS) {
-      g.fillStyle(0x27323a).fillCircle(station.buildingExit.x, station.buildingExit.y, 13);
-      this.add.text(station.buildingExit.x - 12, station.buildingExit.y - 7, '出口', { fontFamily: 'monospace', fontSize: '10px', color: '#f8f2da' });
-    }
   }
 
   private createTruck(): Phaser.GameObjects.Container {
     const g = this.add.graphics();
-    // Local +X is the forward direction. Cab and windshield therefore sit on the right.
-    g.fillStyle(0x3c86a1).fillRect(-96, -30, 88, 60);
-    g.lineStyle(3, 0xdde2d7).strokeRect(-96, -30, 88, 60);
-    g.fillStyle(0xf2f2e9).fillRect(-8, -22, 50, 44);
-    g.fillStyle(0x75b7cf).fillRect(20, -17, 13, 34);
-    g.fillStyle(0xe7cb64).fillRect(38, -15, 5, 9).fillRect(38, 6, 5, 9);
-    g.fillStyle(0x222a30).fillRect(11, -26, 14, 8).fillRect(11, 18, 14, 8).fillRect(-84, -35, 14, 8).fillRect(-84, 27, 14, 8);
+    drawTruckBody(g);
     this.cargoLayer = this.add.graphics();
     this.attendantA = this.createAttendant(-42, -14, 0x315b78);
     this.carriedItem = this.add.graphics();
@@ -173,8 +148,7 @@ export class GameScene extends Phaser.Scene {
 
   private createAttendant(x: number, y: number, shirtColor: number): Phaser.GameObjects.Container {
     const person = this.add.graphics();
-    person.fillStyle(shirtColor).fillRect(-7, 4, 14, 15);
-    person.fillStyle(0xf1b281).fillCircle(0, 0, 8);
+    drawPerson(person, shirtColor, true);
     return this.add.container(x, y, [person]);
   }
 
@@ -183,8 +157,7 @@ export class GameScene extends Phaser.Scene {
     const maxResidents = Math.max(...ROUTE_STATIONS.map((station) => station.deliveries.length));
     this.residents = Array.from({ length: maxResidents }, (_, index) => {
       const person = this.add.graphics();
-      person.fillStyle(colors[index]).fillRect(-8, 5, 16, 20);
-      person.fillStyle(0xf1b281).fillCircle(0, 0, 8);
+      drawPerson(person, colors[index]);
       const item = this.add.graphics();
       this.residentItems.push(item);
       return this.add.container(0, 0, [person, item]).setVisible(false);
@@ -290,6 +263,8 @@ export class GameScene extends Phaser.Scene {
         const x = -87 + (slot % 4) * 17;
         const y = -23 + Math.floor(slot / 4) * 18;
         this.cargoLayer.fillStyle(this.recyclingColor(type)).fillRect(x, y, 13, 13);
+        this.cargoLayer.lineStyle(1, 0x203c3d, 0.8).strokeRect(x, y, 13, 13);
+        this.cargoLayer.fillStyle(0xf0ead1, 0.6).fillRect(x + 3, y + 2, type === 'paper' ? 3 : 7, 2);
         slot += 1;
       }
     }
