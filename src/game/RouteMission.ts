@@ -14,6 +14,7 @@ export type RouteStation = Readonly<{
   queueStart: RoutePoint;
   deliveries: readonly CargoItem[];
   residentDelays?: readonly number[];
+  sortingBatches?: readonly (readonly string[])[];
 }>;
 
 export type StationResult = Readonly<{

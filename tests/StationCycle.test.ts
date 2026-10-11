@@ -14,6 +14,26 @@ const definition = {
 };
 
 describe('StationCycle', () => {
+  it('collects multiple resident batches but never leaves before player sorting and crew return', () => {
+    const cargo = new CargoHold();
+    const station = new StationCycle({ ...definition, sortingBatches: [['pet-bottle-tall-ribbed', 'used-tissue-soft-wad'], ['metal-can-standard-soda']] }, cargo);
+    const stopped = { vehicleX: 100, vehicleY: 100, vehicleSpeed: 0, attemptingToDrive: true };
+    for (let i = 0; i < 1800; i++) station.update(stopped, 1 / 60);
+    expect(station.completedDeliveries).toBe(2);
+    expect(station.sorting?.pending).toHaveLength(3);
+    expect(station.phase).toBe('servicing');
+    expect(station.departureLocked).toBe(true);
+    expect(cargo.volume).toBe(0);
+    for (const entry of [...station.sorting!.pending]) station.sorting!.place(entry.instanceId, entry.item.target);
+    station.update({ ...stopped, attemptingToDrive: false }, 1 / 60);
+    expect(station.phase).toBe('organizing');
+    expect(station.departureLocked).toBe(true);
+    for (let i = 0; i < 150; i++) station.update({ ...stopped, attemptingToDrive: false }, 1 / 60);
+    expect(station.phase).toBe('ready');
+    expect(cargo.volume).toBe(6);
+    expect(station.sorting!.returned).toBe(1);
+  });
+
   it('requires the right-side bay and east-facing heading for every configured stop', () => {
     for (const definition of ROUTE_STATIONS) {
       const station = new StationCycle(definition, new CargoHold());

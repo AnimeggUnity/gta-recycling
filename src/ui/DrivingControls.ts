@@ -35,4 +35,9 @@ export class DrivingControls {
       brake: this.brake.isDown,
     });
   }
+
+  public reset(): void {
+    touchInput.reset();
+    for (const key of [this.up, this.down, this.left, this.right, this.w, this.s, this.a, this.d, this.brake]) key.reset();
+  }
 }

@@ -5,6 +5,7 @@ import { RouteMission, type RouteStation } from '../src/game/RouteMission';
 import { ROAD_EDGES, ROAD_NODES } from '../src/config/roads';
 import { ROUTE_STATIONS } from '../src/config/stations';
 import { NAVIGATION, VEHICLE } from '../src/config/balance';
+import { SORTING_ITEMS } from '../src/config/sorting';
 
 const station: RouteStation = {
   id: 'one',
@@ -55,7 +56,11 @@ describe('RouteMission', () => {
         attemptingToDrive: false,
         crewEfficiency: 1,
       };
-      for (let i = 0; i < 1800; i += 1) mission.update(stopped, 10, 1 / 60);
+      for (let i = 0; i < 1800; i += 1) {
+        mission.update(stopped, 10, 1 / 60);
+        const queue = mission.activeCycle?.sorting;
+        for (const entry of [...queue?.pending ?? []]) queue!.place(entry.instanceId, entry.item.target);
+      }
       expect(mission.activeCycle?.phase).toBe('ready');
       mission.update({ ...stopped, vehicleX: stationDefinition.stop.x + stationDefinition.stop.exitRadius + 10 }, 10, 1 / 60);
     }
@@ -63,7 +68,8 @@ describe('RouteMission', () => {
     expect(mission.complete).toBe(true);
     expect(mission.results).toHaveLength(3);
     expect(mission.getSettlement()?.stationCount).toBe(3);
-    expect(cargo.volume).toBe(113);
-    expect(cargo.weight).toBe(52);
+    const accepted = ROUTE_STATIONS.flatMap((station) => station.sortingBatches.flat()).map((id) => SORTING_ITEMS[id]).filter((item) => item.target !== 'reject');
+    expect(cargo.volume).toBe(accepted.reduce((sum, item) => sum + item.volume, 0));
+    expect(cargo.weight).toBe(accepted.reduce((sum, item) => sum + item.weight, 0));
   });
 });

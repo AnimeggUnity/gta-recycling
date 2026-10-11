@@ -1,6 +1,7 @@
 import type { CargoItem } from './CargoHold';
 import { CargoHold, RECYCLING_LABELS } from './CargoHold';
 import { SERVICE } from '../config/balance';
+import { SortingQueue } from './SortingQueue';
 
 export type StationPhase = 'approaching' | 'stopping' | 'servicing' | 'organizing' | 'ready' | 'departed';
 export type WorkerState = 'riding' | 'waiting' | 'moving-to-tail' | 'receiving' | 'carrying' | 'sorting' | 'organizing' | 'returning';
@@ -12,6 +13,7 @@ export type StationDefinition = Readonly<{
   stop: Readonly<{ x: number; y: number; radius: number; exitRadius: number; docking?: Readonly<{ halfLength: number; halfWidth: number; heading: number; headingTolerance: number }> }>;
   deliveries: readonly CargoItem[];
   residentDelays?: readonly number[];
+  sortingBatches?: readonly (readonly string[])[];
 }>;
 
 export type StationObservation = Readonly<{
@@ -42,6 +44,7 @@ const ACTION_DURATION: Record<ServiceAction, number> = {
 };
 
 export class StationCycle {
+  public readonly sorting: SortingQueue | undefined;
   public phase: StationPhase = 'approaching';
   public workerState: WorkerState = 'riding';
   public workerProgress = 0;
@@ -58,7 +61,12 @@ export class StationCycle {
   public constructor(
     public readonly definition: StationDefinition,
     public readonly cargo: CargoHold,
-  ) {}
+  ) {
+    if (definition.sortingBatches) {
+      if (definition.sortingBatches.length !== definition.deliveries.length) throw new Error('Sorting batches must match residents');
+      this.sorting = new SortingQueue(cargo);
+    }
+  }
 
   public get departureLocked(): boolean {
     return this.phase === 'servicing' || this.phase === 'organizing';
@@ -152,6 +160,7 @@ export class StationCycle {
       case 'approaching': return `前往${this.definition.name}`;
       case 'stopping': return this.stopTimer > 0 ? '保持停車，準備收運' : '靠右停入黃色區，車頭朝上並完全停車';
       case 'servicing': {
+        if (this.sorting && this.completedDeliveries >= this.definition.deliveries.length) return `分類剩餘 ${this.sorting.pending.length} 件，完成後整理車斗`;
         const item = this.currentItem;
         return item ? `收運中：${RECYCLING_LABELS[item.type]}（${this.completedDeliveries + 1}/${this.definition.deliveries.length}）` : '收運完成';
       }
@@ -170,6 +179,11 @@ export class StationCycle {
 
   private updateService(dt: number, workRate: number): void {
     this.serviceElapsed += dt;
+    if (this.sorting && this.completedDeliveries >= this.definition.deliveries.length) {
+      this.workerState = 'waiting';
+      if (this.sorting.pending.length === 0) { this.phase = 'organizing'; this.workerState = 'organizing'; this.workerProgress = 0; }
+      return;
+    }
     // Residents have their own clock; worker efficiency must not make residents slower.
     this.actionElapsed += dt * (this.action === 'resident-arriving' ? 1 : workRate);
     const duration = this.action === 'resident-arriving'
@@ -184,7 +198,8 @@ export class StationCycle {
 
     if (this.action === 'sorting') {
       const item = this.currentItem;
-      if (item && !this.cargo.add(item)) {
+      if (this.sorting) this.sorting.deliver(this.definition.sortingBatches![this.completedDeliveries]);
+      else if (item && !this.cargo.add(item)) {
         this.capacityBlocked = true;
         this.actionElapsed = 0;
         return;
@@ -192,6 +207,7 @@ export class StationCycle {
       this.capacityBlocked = false;
       this.completedDeliveries += 1;
       if (this.completedDeliveries >= this.definition.deliveries.length) {
+        if (this.sorting) { this.workerState = 'waiting'; return; }
         this.phase = 'organizing';
         this.workerState = 'organizing';
         this.workerProgress = 0;

@@ -1,5 +1,6 @@
 import type { RouteStation } from '../game/RouteMission';
 import { STREET } from './balance';
+import { SORTING_BATCHES } from './sorting';
 
 const stop = (x: number) => ({
   x, y: STREET.bayY, radius: 85, exitRadius: 180,
@@ -9,6 +10,7 @@ const stop = (x: number) => ({
 export const ROUTE_STATIONS = [
   {
     id: 'heping-east-road',
+    sortingBatches: SORTING_BATCHES[0],
     name: '和平東路收運站',
     residentDelays: [0, 1.4, 0, 0.6],
     scheduledOffsetSeconds: 25,
@@ -24,6 +26,7 @@ export const ROUTE_STATIONS = [
   },
   {
     id: 'xinsheng-south-road',
+    sortingBatches: SORTING_BATCHES[1],
     name: '新生南路收運站',
     residentDelays: [0, 2, 0],
     scheduledOffsetSeconds: 72,
@@ -38,6 +41,7 @@ export const ROUTE_STATIONS = [
   },
   {
     id: 'roosevelt-road',
+    sortingBatches: SORTING_BATCHES[2],
     name: '羅斯福路收運站',
     residentDelays: [1, 0, 1.8],
     scheduledOffsetSeconds: 118,

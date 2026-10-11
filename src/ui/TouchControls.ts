@@ -37,6 +37,7 @@ export class TouchControls {
       button.addEventListener('lostpointercapture', release);
     }
     window.addEventListener('blur', () => this.reset());
+    window.addEventListener('gta-input-reset', () => this.reset());
     document.addEventListener('visibilitychange', () => { if (document.hidden) this.reset(); });
     window.addEventListener('orientationchange', () => this.reset());
     let previousWidth = window.innerWidth;

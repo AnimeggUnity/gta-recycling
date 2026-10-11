@@ -15,6 +15,7 @@ import { RouteMission } from '../game/RouteMission';
 import { Vehicle } from '../game/Vehicle';
 import { DrivingControls } from '../ui/DrivingControls';
 import { Hud } from '../ui/Hud';
+import { SortingPanel } from '../ui/SortingPanel';
 import { drawStreetArt } from './StreetArt';
 import { drawCrewExpression, drawPerson, drawTruckBody } from './TruckArt';
 import { TrafficArt } from './TrafficArt';
@@ -47,6 +48,7 @@ export class GameScene extends Phaser.Scene {
   private controls!: DrivingControls;
   private pendingImpact = 0;
   private hud = new Hud();
+  private sortingPanel = new SortingPanel();
   private hudElapsedMs = 100;
 
   public constructor() { super('GameScene'); }
@@ -70,9 +72,15 @@ export class GameScene extends Phaser.Scene {
   }
 
   public update(_time: number, deltaMs: number): void {
-    const input = this.controls.read();
+    const sortingActive = Boolean(this.mission.activeCycle?.sorting && this.mission.activeCycle.departureLocked);
+    const input = sortingActive ? { throttle: 0, steering: 0, brake: false } : this.controls.read();
     const { throttle, steering } = input;
     this.clock.advance(deltaMs / 1000, (dt) => {
+      for (const command of this.sortingPanel.takeCommands()) {
+        if (command.queue === this.mission.activeCycle?.sorting && this.mission.activeCycle.departureLocked) {
+          this.sortingPanel.feedback(command.queue.place(command.instanceId, command.target));
+        }
+      }
       this.mission.update({
         vehicleX: this.vehicle.x,
         vehicleY: this.vehicle.y,
@@ -129,6 +137,8 @@ export class GameScene extends Phaser.Scene {
     );
     const activeStation = this.mission.activeStation;
     const activeCycle = this.mission.activeCycle;
+    if (sortingActive !== Boolean(activeCycle?.sorting && activeCycle.departureLocked)) this.controls.reset();
+    this.sortingPanel.update(activeCycle);
     // DOM panels refresh at 10Hz; world rendering and fixed-step rules stay unchanged.
     this.hudElapsedMs += deltaMs;
     if (this.hudElapsedMs < 100) return;
