@@ -1,22 +1,17 @@
 import type { RoadEdge, RoadNode } from '../game/RoadGraph';
+import { STREET, WORLD } from './balance';
 
 export const ROAD_NODES = [
-  { id: 'west-stop', x: 250, y: 585 },
-  { id: 'start', x: 470, y: 585 },
-  { id: 'intersection', x: 780, y: 585 },
-  { id: 'east-stop', x: 1120, y: 585 },
-  { id: 'east-end', x: 1420, y: 585 },
-  { id: 'north-stop', x: 780, y: 170 },
-  { id: 'north-mid', x: 780, y: 390 },
-  { id: 'south-end', x: 780, y: 820 },
+  { id: 'west-end', x: 120, y: STREET.startY },
+  { id: 'first', x: 1500, y: STREET.startY },
+  { id: 'second', x: 3200, y: STREET.startY },
+  { id: 'third', x: 5100, y: STREET.startY },
+  { id: 'east-end', x: WORLD.width - 120, y: STREET.startY },
 ] satisfies readonly RoadNode[];
 
 export const ROAD_EDGES = [
-  { from: 'west-stop', to: 'start' },
-  { from: 'start', to: 'intersection' },
-  { from: 'intersection', to: 'east-stop' },
-  { from: 'east-stop', to: 'east-end' },
-  { from: 'north-stop', to: 'north-mid' },
-  { from: 'north-mid', to: 'intersection' },
-  { from: 'intersection', to: 'south-end' },
+  { from: 'west-end', to: 'first' },
+  { from: 'first', to: 'second' },
+  { from: 'second', to: 'third' },
+  { from: 'third', to: 'east-end' },
 ] satisfies readonly RoadEdge[];

@@ -24,11 +24,11 @@ describe('Vehicle', () => {
   });
   it('accelerates toward its visual front', () => {
     const vehicle = new Vehicle();
-    const initialY = vehicle.y;
+    const initialX = vehicle.x;
     for (let i = 0; i < 60; i += 1) {
       vehicle.update({ throttle: 1, steering: 0, brake: false }, 1 / 60);
     }
-    expect(vehicle.y).toBeLessThan(initialY);
+    expect(vehicle.x).toBeGreaterThan(initialX);
     expect(vehicle.telemetry.longitudinalSpeed).toBeGreaterThan(0);
   });
 

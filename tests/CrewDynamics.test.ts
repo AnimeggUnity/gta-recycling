@@ -12,6 +12,12 @@ const smooth: VehicleTelemetry = {
 };
 
 describe('CrewDynamics', () => {
+  it('reacts immediately to a vehicle collision rather than labeling it a pothole', () => {
+    const crew = new CrewDynamics();
+    crew.update(smooth, 0, 1 / 60, { collisionImpact: 0.8 });
+    expect(crew.anger).toBeGreaterThan(19);
+    expect(crew.irritationCause).toBe('車輛碰撞');
+  });
   it('stays calm during smooth driving', () => {
     const crew = new CrewDynamics();
     for (let i = 0; i < 600; i += 1) crew.update(smooth, 0, 1 / 60);

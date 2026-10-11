@@ -1,6 +1,6 @@
 export const WORLD = {
-  width: 1600,
-  height: 960,
+  width: 6000,
+  height: 1100,
   fixedStepSeconds: 1 / 60,
   maxFrameSeconds: 0.25,
 } as const;
@@ -11,9 +11,10 @@ export const SERVICE = {
 } as const;
 
 export const VEHICLE = {
+  kmhPerSpeedUnit: 0.35,
   maxForwardSpeed: 285,
   maxReverseSpeed: 95,
-  boundaryMargin: 100,
+  boundaryMargin: 120,
   forwardAcceleration: 205,
   reverseAcceleration: 130,
   directionChangeBraking: 330,
@@ -26,4 +27,58 @@ export const VEHICLE = {
   highSpeedTurnRate: 1.25,
   steeringResponse: 6.5,
   steeringReversalResponse: 12,
+} as const;
+
+export const NAVIGATION = {
+  metersPerPixel: VEHICLE.kmhPerSpeedUnit / 3.6,
+  cruiseSpeedKmh: 35,
+} as const;
+
+export const STREET = {
+  top: 390,
+  bottom: 650,
+  centerY: 520,
+  sidewalkTop: 340,
+  sidewalkBottom: 770,
+  eastboundLanes: [550, 610],
+  westboundLanes: [430, 490],
+  bayY: 695,
+  bayHalfLength: 150,
+  bayHalfWidth: 45,
+  dockingHalfLength: 65,
+  dockingHalfWidth: 15,
+  dockingHeadingTolerance: 0.35,
+  startX: 250,
+  startY: 610,
+} as const;
+
+export const TRAFFIC = {
+  greenSeconds: 18,
+  yellowSeconds: 3,
+  redSeconds: 12,
+  signalXs: [2200, 4200],
+  stopLineOffset: 60,
+  crossingWidth: 36,
+  acceleration: 65,
+  braking: 180,
+  followingGap: 36,
+  reactionSeconds: 0.7,
+  spawnSpacing: 700,
+  initialSpawnX: 600,
+  vehiclesPerLane: 8,
+  collisionYieldSeconds: 1.2,
+  sedanHalfLength: 36,
+  sedanHalfWidth: 17,
+  scooterHalfLength: 18,
+  scooterHalfWidth: 9,
+  truckHalfLength: 74,
+  truckHalfWidth: 36,
+  truckCenterOffset: -28,
+  collisionSkin: 0.1,
+  restitution: 0.05,
+  collisionIterations: 6,
+  collisionWarningSeconds: 1.8,
+  minimumImpactSpeed: 12,
+  impactReferenceSpeed: 220,
+  collisionAnger: 25,
 } as const;

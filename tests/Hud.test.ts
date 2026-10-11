@@ -31,8 +31,8 @@ describe('HUD presentation', () => {
   it('uses real vehicle coordinates and route points in the minimap', () => {
     const { hud } = mountHud();
     hud.update(data);
-    expect(hud.element.innerHTML).toContain('translate(400 520) rotate(-90)');
-    expect(hud.element.innerHTML).toContain('points="400,520 780,520"');
+    expect(hud.element.innerHTML).toContain('translate(67 149) rotate(-90)');
+    expect(hud.element.innerHTML).toContain('points="67,149 130,149"');
     expect(hud.element.innerHTML).toContain('transform:rotate(1.5707963267948966rad)');
     expect(hud.element.innerHTML).toContain('speed-warning');
     expect(hud.element.innerHTML).toContain('怒氣 <b>55</b>');

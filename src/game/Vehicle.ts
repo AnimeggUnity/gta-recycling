@@ -1,4 +1,4 @@
-import { VEHICLE, WORLD } from '../config/balance';
+import { STREET, VEHICLE, WORLD } from '../config/balance';
 
 export type DriverInput = Readonly<{ throttle: number; steering: number; brake: boolean }>;
 
@@ -12,9 +12,9 @@ export type VehicleTelemetry = Readonly<{
 }>;
 
 export class Vehicle {
-  public x = 470;
-  public y = 610;
-  public rotation = -Math.PI / 2;
+  public x: number = STREET.startX;
+  public y: number = STREET.startY;
+  public rotation = 0;
   public velocityX = 0;
   public velocityY = 0;
   public telemetry: VehicleTelemetry = {

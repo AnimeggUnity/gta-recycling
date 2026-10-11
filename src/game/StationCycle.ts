@@ -9,7 +9,7 @@ type ServiceAction = Exclude<WorkerState, 'riding' | 'waiting' | 'organizing' | 
 
 export type StationDefinition = Readonly<{
   name: string;
-  stop: Readonly<{ x: number; y: number; radius: number; exitRadius: number }>;
+  stop: Readonly<{ x: number; y: number; radius: number; exitRadius: number; docking?: Readonly<{ halfLength: number; halfWidth: number; heading: number; headingTolerance: number }> }>;
   deliveries: readonly CargoItem[];
   residentDelays?: readonly number[];
 }>;
@@ -20,6 +20,7 @@ export type StationObservation = Readonly<{
   vehicleSpeed: number;
   attemptingToDrive: boolean;
   crewEfficiency?: number;
+  vehicleRotation?: number;
 }>;
 
 export type ResidentSnapshot = Readonly<{
@@ -78,7 +79,15 @@ export class StationCycle {
       observation.vehicleX - this.definition.stop.x,
       observation.vehicleY - this.definition.stop.y,
     );
-    const insideStop = distance <= this.definition.stop.radius;
+    const docking = this.definition.stop.docking;
+    const headingError = docking ? Math.abs(Math.atan2(Math.sin((observation.vehicleRotation ?? 0) - docking.heading), Math.cos((observation.vehicleRotation ?? 0) - docking.heading))) : 0;
+    const dx = observation.vehicleX - this.definition.stop.x;
+    const dy = observation.vehicleY - this.definition.stop.y;
+    const insideStop = docking
+      ? Math.abs(dx * Math.cos(docking.heading) + dy * Math.sin(docking.heading)) <= docking.halfLength
+        && Math.abs(-dx * Math.sin(docking.heading) + dy * Math.cos(docking.heading)) <= docking.halfWidth
+        && headingError <= docking.headingTolerance
+      : distance <= this.definition.stop.radius;
     const safelyStopped = observation.vehicleSpeed <= 7;
     const workRate = this.clamp(observation.crewEfficiency ?? 1, 0.5, 1);
 
@@ -141,7 +150,7 @@ export class StationCycle {
     if (this.warningTimer > 0) return '⚠ 隨車人員尚未安全就位，禁止離站';
     switch (this.phase) {
       case 'approaching': return `前往${this.definition.name}`;
-      case 'stopping': return this.stopTimer > 0 ? '保持停車，準備收運' : '請在黃色停靠區內完全停車';
+      case 'stopping': return this.stopTimer > 0 ? '保持停車，準備收運' : '靠右停入黃色區，車頭朝東並完全停車';
       case 'servicing': {
         const item = this.currentItem;
         return item ? `收運中：${RECYCLING_LABELS[item.type]}（${this.completedDeliveries + 1}/${this.definition.deliveries.length}）` : '收運完成';

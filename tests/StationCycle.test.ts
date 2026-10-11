@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { CargoHold } from '../src/game/CargoHold';
 import { StationCycle } from '../src/game/StationCycle';
+import { ROUTE_STATIONS } from '../src/config/stations';
+import { STREET } from '../src/config/balance';
 
 const definition = {
   name: '測試站',
@@ -12,6 +14,21 @@ const definition = {
 };
 
 describe('StationCycle', () => {
+  it('requires the right-side bay and east-facing heading for every configured stop', () => {
+    for (const definition of ROUTE_STATIONS) {
+      const station = new StationCycle(definition, new CargoHold());
+      const stopped = { vehicleX: definition.stop.x, vehicleY: STREET.startY, vehicleRotation: 0, vehicleSpeed: 0, attemptingToDrive: false };
+      station.update(stopped, 1);
+      expect(station.phase).toBe('approaching');
+      station.update({ ...stopped, vehicleY: definition.stop.y, vehicleRotation: Math.PI }, 1);
+      expect(station.phase).toBe('approaching');
+      station.update({ ...stopped, vehicleY: definition.stop.y }, 0.1);
+      station.update({ ...stopped, vehicleY: definition.stop.y }, 0.8);
+      expect(station.phase).toBe('servicing');
+    }
+    expect(ROUTE_STATIONS.every((s) => s.stop.y > STREET.bottom && s.buildingExit.y > s.stop.y)).toBe(true);
+    expect(ROUTE_STATIONS.map((s) => s.stop.x)).toEqual([...ROUTE_STATIONS.map((s) => s.stop.x)].sort((a, b) => a - b));
+  });
   it('does not blame resident walking time or worker anger for resident delays', () => {
     const station = new StationCycle({ ...definition, residentDelays: [2, 0] }, new CargoHold());
     const stopped = { vehicleX: 100, vehicleY: 100, vehicleSpeed: 0, attemptingToDrive: false, crewEfficiency: 0.55 };

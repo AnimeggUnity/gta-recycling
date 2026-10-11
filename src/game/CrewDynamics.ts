@@ -1,9 +1,11 @@
 import type { VehicleTelemetry } from './Vehicle';
+import { TRAFFIC, VEHICLE } from '../config/balance';
 
 export type CrewReaction = 'calm' | 'annoyed' | 'angry' | 'furious';
 export type CrewRiskContext = Readonly<{
   steeringInput?: number;
   residentDelaySeconds?: number;
+  collisionImpact?: number;
 }>;
 
 export class CrewDynamics {
@@ -35,13 +37,18 @@ export class CrewDynamics {
       this.bounce = Math.max(this.bounce, potholeImpact);
       this.anger += potholeImpact * 12;
     }
+    const collisionImpact = context.collisionImpact ?? 0;
+    if (collisionImpact > 0) {
+      this.anger += collisionImpact * TRAFFIC.collisionAnger;
+      this.bounce = Math.max(this.bounce, collisionImpact);
+    }
     this.bounce *= Math.exp(-5.5 * dt);
 
     const harshLongitudinal = Math.max(0, (Math.abs(telemetry.acceleration) - 240) / 260);
     const harshLateral = Math.max(0, (Math.abs(telemetry.lateralAcceleration) - 100) / 180);
     const harshJerk = telemetry.speed > 20 ? Math.max(0, (Math.abs(telemetry.jerk) - 8000) / 12000) : 0;
     const roughRideRate = harshLongitudinal * 5 + harshLateral * 5.5 + harshJerk * 1.8;
-    const speedKmh = telemetry.speed * 0.35;
+    const speedKmh = telemetry.speed * VEHICLE.kmhPerSpeedUnit;
     const speedingRate = speedKmh > 40 ? 2 + (speedKmh - 40) * 0.16 : 0;
     const fastTurnRate = Math.abs(context.steeringInput ?? 0) > 0.15 && speedKmh > 20
       ? 2.5 + (speedKmh - 20) * 0.18
@@ -56,7 +63,8 @@ export class CrewDynamics {
       { label: '居民拖延交付', rate: residentDelayRate },
       { label: '急煞或車身衝擊', rate: roughRideRate },
     ];
-    this.irritationCause = potholeImpact > 0
+    this.irritationCause = collisionImpact > 0 ? '車輛碰撞'
+      : potholeImpact > 0
       ? '坑洞衝擊'
       : causes.reduce((strongest, cause) => cause.rate > strongest.rate ? cause : strongest, { label: '狀態平穩', rate: 0 }).label;
 

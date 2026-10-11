@@ -1,6 +1,7 @@
 import { ROUTE_STATIONS } from '../config/stations';
-import { WORLD } from '../config/balance';
+import { STREET, TRAFFIC, VEHICLE, WORLD } from '../config/balance';
 import type { RoutePoint } from '../game/RoadGraph';
+import type { SignalColor } from '../game/TrafficSystem';
 
 export class Hud {
   public readonly element: HTMLDivElement;
@@ -40,6 +41,8 @@ export class Hud {
     vehicleY: number;
     vehicleRotation: number;
     navigationPath: readonly RoutePoint[];
+    signalColor?: SignalColor;
+    signalDistance?: number;
     settlement?: Readonly<{
       score: number;
       totalSeconds: number;
@@ -51,17 +54,19 @@ export class Hud {
     const handling = Math.abs(data.lateralSpeed) > 14 ? '輪胎滑動' : '抓地正常';
     const angerClass = data.crewAnger >= 50 ? 'danger' : data.crewAnger >= 25 ? 'warning' : 'calm';
     const delay = data.settlement ? '路線完成' : data.delaySeconds > 1 ? `延誤 +${Math.round(data.delaySeconds)}s` : `提早 ${Math.round(Math.abs(data.delaySeconds))}s`;
-    const speed = Math.round(data.speed * 0.35);
-    const overspeed = data.speed * 0.35 > 40;
+    const speed = Math.round(data.speed * VEHICLE.kmhPerSpeedUnit);
+    const overspeed = data.speed * VEHICLE.kmhPerSpeedUnit > 40;
     const nextPoint = data.navigationPath.find((point) => Math.hypot(point.x - data.vehicleX, point.y - data.vehicleY) > 15);
     const bearing = nextPoint ? Math.atan2(nextPoint.y - data.vehicleY, nextPoint.x - data.vehicleX) - data.vehicleRotation : 0;
+    const atStop = data.distanceMeters === 0 && data.navigationPath.length === 0;
     const markup = `
       <section class="nav-panel panel">
         <div class="eyebrow">TAIWAN RECYCLING RUN <span>收運勤務</span></div>
         <div class="brand">街頭回收隊<span class="route-counter">${Math.min(data.stationNumber, data.stationCount)} / ${data.stationCount} 站</span></div>
-        <div class="destination"><span class="turn-icon"><i style="transform:rotate(${bearing}rad)">↑</i></span><div><small>下一個收運站</small><strong>${data.stationName}</strong></div></div>
+        <div class="destination"><span class="turn-icon"><i style="transform:rotate(${bearing}rad)">${atStop ? '✓' : '↑'}</i></span><div><small>${atStop ? '目前收運站' : '下一個收運站'}</small><strong>${data.stationName}</strong></div></div>
         <div class="nav-metrics"><div><b>${Math.round(data.distanceMeters)}</b><small>公尺</small></div><div><b>${this.duration(data.etaSeconds)}</b><small>預估抵達 ETA</small></div></div>
         <div class="schedule"><span>預定 ${data.scheduledTime}</span><span class="${data.delaySeconds > 1 ? 'warning' : 'calm'}">${delay}</span></div>
+        <div class="traffic-status ${data.signalColor ?? ''}"><i></i>${data.signalColor ? `${{ red: '前方紅燈 · 停止線前停車', yellow: '前方黃燈 · 減速準備停車', green: '前方綠燈 · 留意汽機車' }[data.signalColor]}　${data.signalDistance ?? 0}m` : '靠右停入收運灣 · 車頭朝東 →'}</div>
         <div class="hud-status">${data.status}</div>
       </section>
       <section class="map-panel panel"><div class="eyebrow">路線圖 <span>LIVE GPS</span></div>${this.minimap(data)}</section>
@@ -94,9 +99,13 @@ export class Hud {
   }
 
   private minimap(data: { vehicleX: number; vehicleY: number; vehicleRotation: number; navigationPath: readonly RoutePoint[]; stationNumber: number }): string {
-    const points = data.navigationPath.map((point) => `${Math.round(point.x)},${Math.round(point.y)}`).join(' ');
-    const stops = ROUTE_STATIONS.map((station, index) => `<circle cx="${station.stop.x}" cy="${station.stop.y}" r="35" fill="${index + 1 < data.stationNumber ? '#7bb997' : index + 1 === data.stationNumber ? '#f1cd7d' : '#82928c'}"/><text x="${station.stop.x}" y="${station.stop.y + 12}" text-anchor="middle" fill="#203739" font-size="38" font-weight="bold">${index + 1}</text>`).join('');
-    return `<svg viewBox="0 0 ${WORLD.width} ${WORLD.height}" role="img" aria-label="即時收運路線與車輛位置"><rect width="${WORLD.width}" height="${WORLD.height}" fill="#364d48"/><path d="M0 520H1600 M780 0V960" stroke="#21363c" stroke-width="220"/><path d="M0 520H1600 M780 0V960" stroke="#637570" stroke-width="6"/><polyline points="${points}" fill="none" stroke="#7ed4b9" stroke-width="20" stroke-linejoin="round"/>${stops}<g transform="translate(${Math.round(data.vehicleX)} ${Math.round(data.vehicleY)}) rotate(${Math.round(data.vehicleRotation * 180 / Math.PI)})"><circle r="45" fill="#dcecd6" fill-opacity=".15"/><path d="M38 0L-25 -24L-17 0L-25 24Z" fill="#f9eee0" stroke="#223d3e" stroke-width="6"/></g></svg>`;
+    // Schematic stretches the road vertically so a 6,000px strip stays readable.
+    const x = (value: number) => Math.round(value / WORLD.width * 1000);
+    const y = (value: number) => Math.round(Math.max(20, Math.min(310, 90 + (value - STREET.top) * 0.45)));
+    const points = data.navigationPath.map((point) => `${x(point.x)},${y(point.y)}`).join(' ');
+    const stops = ROUTE_STATIONS.map((station, index) => `<circle cx="${x(station.stop.x)}" cy="${y(station.stop.y)}" r="28" fill="${index + 1 < data.stationNumber ? '#7bb997' : index + 1 === data.stationNumber ? '#f1cd7d' : '#82928c'}"/><text x="${x(station.stop.x)}" y="${y(station.stop.y) + 14}" text-anchor="middle" fill="#203739" font-size="42" font-weight="bold">${index + 1}</text>`).join('');
+    const signals = TRAFFIC.signalXs.map((value) => `<path d="M${x(value)} 90V207" stroke="#cfb990" stroke-width="8"/>`).join('');
+    return `<svg viewBox="0 0 1000 340" role="img" aria-label="直線收運路線：由西往東，三站位於道路右側"><rect width="1000" height="340" fill="#364d48"/><rect y="90" width="1000" height="117" fill="#21363c"/><path d="M0 ${y(STREET.centerY)}H1000" stroke="#a89768" stroke-width="4"/>${signals}<text x="35" y="58" fill="#acbca9" font-size="38">西</text><text x="965" y="58" text-anchor="end" fill="#acbca9" font-size="38">東 →</text><polyline points="${points}" fill="none" stroke="#7ed4b9" stroke-width="12" stroke-linejoin="round"/>${stops}<g transform="translate(${x(data.vehicleX)} ${y(data.vehicleY)}) rotate(${Math.round(data.vehicleRotation * 180 / Math.PI)})"><circle r="32" fill="#dcecd6" fill-opacity=".15"/><path d="M28 0L-20 -18L-13 0L-20 18Z" fill="#f9eee0" stroke="#223d3e" stroke-width="4"/></g><text x="500" y="312" text-anchor="middle" fill="#b6c9b1" font-size="35">收運灣在東向右側 ↓</text></svg>`;
   }
 
   private duration(seconds: number): string {

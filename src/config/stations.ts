@@ -1,14 +1,20 @@
 import type { RouteStation } from '../game/RouteMission';
+import { STREET } from './balance';
+
+const stop = (x: number) => ({
+  x, y: STREET.bayY, radius: 85, exitRadius: 180,
+  docking: { halfLength: STREET.dockingHalfLength, halfWidth: STREET.dockingHalfWidth, heading: 0, headingTolerance: STREET.dockingHeadingTolerance },
+});
 
 export const ROUTE_STATIONS = [
   {
     id: 'heping-east-road',
     name: '和平東路收運站',
     residentDelays: [0, 1.4, 0, 0.6],
-    scheduledOffsetSeconds: 35,
-    stop: { x: 1120, y: 585, radius: 92, exitRadius: 145 },
-    buildingExit: { x: 1200, y: 345 },
-    queueStart: { x: 1200, y: 430 },
+    scheduledOffsetSeconds: 25,
+    stop: stop(1500),
+    buildingExit: { x: 1500, y: 803 },
+    queueStart: { x: 1500, y: 745 },
     deliveries: [
       { type: 'paper', volume: 12, weight: 5 },
       { type: 'plastic', volume: 15, weight: 2 },
@@ -20,10 +26,10 @@ export const ROUTE_STATIONS = [
     id: 'xinsheng-south-road',
     name: '新生南路收運站',
     residentDelays: [0, 2, 0],
-    scheduledOffsetSeconds: 82,
-    stop: { x: 780, y: 170, radius: 88, exitRadius: 140 },
-    buildingExit: { x: 1010, y: 170 },
-    queueStart: { x: 895, y: 170 },
+    scheduledOffsetSeconds: 72,
+    stop: stop(3200),
+    buildingExit: { x: 3200, y: 803 },
+    queueStart: { x: 3200, y: 745 },
     deliveries: [
       { type: 'plastic', volume: 14, weight: 2 },
       { type: 'paper', volume: 10, weight: 4 },
@@ -34,10 +40,10 @@ export const ROUTE_STATIONS = [
     id: 'roosevelt-road',
     name: '羅斯福路收運站',
     residentDelays: [1, 0, 1.8],
-    scheduledOffsetSeconds: 132,
-    stop: { x: 250, y: 585, radius: 88, exitRadius: 140 },
-    buildingExit: { x: 250, y: 350 },
-    queueStart: { x: 250, y: 430 },
+    scheduledOffsetSeconds: 118,
+    stop: stop(5100),
+    buildingExit: { x: 5100, y: 803 },
+    queueStart: { x: 5100, y: 745 },
     deliveries: [
       { type: 'glass', volume: 10, weight: 8 },
       { type: 'paper', volume: 13, weight: 5 },

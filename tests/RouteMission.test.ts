@@ -4,6 +4,7 @@ import { RoadGraph } from '../src/game/RoadGraph';
 import { RouteMission, type RouteStation } from '../src/game/RouteMission';
 import { ROAD_EDGES, ROAD_NODES } from '../src/config/roads';
 import { ROUTE_STATIONS } from '../src/config/stations';
+import { NAVIGATION, VEHICLE } from '../src/config/balance';
 
 const station: RouteStation = {
   id: 'one',
@@ -20,8 +21,8 @@ describe('RouteMission', () => {
     const roads = new RoadGraph([{ id: 'a', x: 0, y: 0 }, { id: 'b', x: 100, y: 0 }], [{ from: 'a', to: 'b' }]);
     const mission = new RouteMission([station], new CargoHold(), roads);
     const navigation = mission.getNavigation({ x: 0, y: 0 });
-    expect(navigation.remainingMeters).toBe(250);
-    expect(navigation.etaSeconds).toBeCloseTo(100 / 145);
+    expect(navigation.remainingMeters).toBe(Math.round(100 * NAVIGATION.metersPerPixel));
+    expect(navigation.etaSeconds).toBeCloseTo(100 / (NAVIGATION.cruiseSpeedKmh / VEHICLE.kmhPerSpeedUnit));
     expect(navigation.scheduledTime).toBe('18:30:30');
     expect(navigation.delaySeconds).toBeLessThan(0);
   });
@@ -32,6 +33,7 @@ describe('RouteMission', () => {
     const stopped = { vehicleX: 100, vehicleY: 0, vehicleSpeed: 0, attemptingToDrive: false, crewEfficiency: 1 };
     for (let i = 0; i < 600; i += 1) mission.update(stopped, 20, 1 / 60);
     expect(mission.activeCycle?.phase).toBe('ready');
+    expect(mission.getNavigation({ x: 100, y: 0 }).path).toEqual([]);
     mission.update({ ...stopped, vehicleX: 150, attemptingToDrive: true }, 20, 1 / 60);
     expect(mission.complete).toBe(true);
     expect(mission.getSettlement()?.stationCount).toBe(1);

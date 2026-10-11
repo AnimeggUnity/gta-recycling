@@ -1,8 +1,11 @@
 import Phaser from 'phaser';
-import { WORLD } from '../config/balance';
+import { NAVIGATION, STREET, TRAFFIC, WORLD } from '../config/balance';
 import { POTHOLES } from '../config/hazards';
 import { ROAD_EDGES, ROAD_NODES } from '../config/roads';
 import { ROUTE_STATIONS } from '../config/stations';
+import { STATIC_OBSTACLES } from '../config/street';
+import { CollisionWorld, truckBody } from '../game/CollisionWorld';
+import { signalColor, TrafficSystem } from '../game/TrafficSystem';
 import { CargoHold, type RecyclingType } from '../game/CargoHold';
 import { CrewDynamics, type CrewReaction } from '../game/CrewDynamics';
 import { FixedStepClock } from '../game/FixedStepClock';
@@ -14,6 +17,7 @@ import { DrivingControls } from '../ui/DrivingControls';
 import { Hud } from '../ui/Hud';
 import { drawStreetArt } from './StreetArt';
 import { drawPerson, drawTruckBody } from './TruckArt';
+import { TrafficArt } from './TrafficArt';
 
 export class GameScene extends Phaser.Scene {
   private readonly vehicle = new Vehicle();
@@ -23,6 +27,11 @@ export class GameScene extends Phaser.Scene {
   private readonly potholes = new PotholeSystem(POTHOLES);
   private readonly roads = new RoadGraph(ROAD_NODES, ROAD_EDGES);
   private readonly mission = new RouteMission(ROUTE_STATIONS, this.cargo, this.roads);
+  private readonly traffic = new TrafficSystem();
+  private readonly collisions = new CollisionWorld(STATIC_OBSTACLES);
+  private trafficArt!: TrafficArt;
+  private collisionWarningSeconds = 0;
+  private collisionLabel = '';
   private truck!: Phaser.GameObjects.Container;
   private attendantA!: Phaser.GameObjects.Container;
   private attendantB!: Phaser.GameObjects.Container;
@@ -47,6 +56,7 @@ export class GameScene extends Phaser.Scene {
     drawStreetArt(this);
     this.navigationLayer = this.add.graphics();
     this.stopMarker = this.add.graphics();
+    this.trafficArt = new TrafficArt(this, this.traffic);
     this.createResidents();
     this.truck = this.createTruck();
     this.cameraTarget = this.add.zone(this.vehicle.x, this.vehicle.y, 1, 1);
@@ -62,17 +72,32 @@ export class GameScene extends Phaser.Scene {
         vehicleX: this.vehicle.x,
         vehicleY: this.vehicle.y,
         vehicleSpeed: this.vehicle.speed,
+        vehicleRotation: this.vehicle.rotation,
         attemptingToDrive: throttle !== 0,
         crewEfficiency: this.crew.efficiency,
       }, this.crew.anger, dt);
       const parked = Boolean(this.mission.activeCycle?.departureLocked) || this.mission.complete;
       if (parked) this.vehicle.park();
       else this.vehicle.update({ throttle, steering, brake: input.brake }, dt);
+      this.collisionWarningSeconds = Math.max(0, this.collisionWarningSeconds - dt);
+      let collisionImpact = 0;
+      if (!this.mission.complete) this.traffic.update(dt, truckBody(this.vehicle));
+      if (!parked) {
+        const collision = this.collisions.resolve(this.vehicle, this.traffic.getObstacles());
+        this.traffic.stopContacts(collision.contacts);
+        if (collision.impactSpeed > TRAFFIC.minimumImpactSpeed) {
+          collisionImpact = Math.min(1, collision.impactSpeed / TRAFFIC.impactReferenceSpeed);
+          this.collisionLabel = `碰撞：${collision.label}，請減速並保持車距`;
+          this.collisionWarningSeconds = TRAFFIC.collisionWarningSeconds;
+          this.pendingImpact = Math.max(this.pendingImpact, collisionImpact);
+        }
+      }
       const impact = this.potholes.update(this.vehicle.x, this.vehicle.y, this.vehicle.speed);
       this.pendingImpact = Math.max(this.pendingImpact, impact);
       if (!this.mission.complete) this.crew.update(this.vehicle.telemetry, impact, dt, {
         steeringInput: steering,
         residentDelaySeconds: this.mission.activeCycle?.residentDelaySeconds ?? 0,
+        collisionImpact,
       });
     });
     const bounceScale = 1 + this.crew.bounce * 0.025;
@@ -86,6 +111,7 @@ export class GameScene extends Phaser.Scene {
     this.updateStationVisuals();
     this.updateAttendants();
     this.updateCargoVisuals();
+    this.trafficArt.update(this.traffic);
     const lookAheadSeconds = 0.42;
     const targetX = this.vehicle.x + this.vehicle.velocityX * lookAheadSeconds;
     const targetY = this.vehicle.y + this.vehicle.velocityY * lookAheadSeconds;
@@ -100,11 +126,14 @@ export class GameScene extends Phaser.Scene {
     this.hudElapsedMs += deltaMs;
     if (this.hudElapsedMs < 100) return;
     this.hudElapsedMs %= 100;
+    const nextSignal = this.traffic.nextSignal(this.vehicle.x);
+    const color = nextSignal ? signalColor(nextSignal, this.traffic.elapsedSeconds) : undefined;
+    const signalDistance = nextSignal ? Math.round(Math.max(0, nextSignal.x - TRAFFIC.stopLineOffset - this.vehicle.x) * NAVIGATION.metersPerPixel) : 0;
     this.hud.update({
       speed: this.vehicle.speed,
       lateralSpeed: this.vehicle.telemetry.lateralSpeed,
       distanceMeters: navigation.remainingMeters,
-      status: activeCycle?.getStatusText() ?? '✓ 三站路線全部完成',
+      status: this.collisionWarningSeconds > 0 ? this.collisionLabel : activeCycle?.getStatusText() ?? '✓ 三站路線全部完成',
       cargoVolume: this.cargo.volume,
       maxCargoVolume: this.cargo.maxVolume,
       cargoWeight: this.cargo.weight,
@@ -124,6 +153,8 @@ export class GameScene extends Phaser.Scene {
       vehicleY: this.vehicle.y,
       vehicleRotation: this.vehicle.rotation,
       navigationPath: navigation.path,
+      signalColor: color,
+      signalDistance,
     });
   }
 
@@ -182,12 +213,12 @@ export class GameScene extends Phaser.Scene {
       const active = index === this.mission.currentStationIndex;
       const ready = active && (this.mission.activeCycle?.phase === 'ready' || this.mission.activeCycle?.phase === 'departed');
       const color = completed || ready ? 0x5ec76f : active ? 0xf1c84c : 0x70818d;
-      const vertical = station.id === 'xinsheng-south-road';
-      const width = vertical ? 80 : 156;
-      const height = vertical ? 156 : 80;
+      const width = STREET.bayHalfLength * 2;
+      const height = STREET.bayHalfWidth * 2;
       this.stopMarker.fillStyle(color, active || completed ? 0.15 : 0.07).fillRect(station.stop.x - width / 2, station.stop.y - height / 2, width, height);
       this.stopMarker.lineStyle(active ? 4 : 2, color, active || completed ? 0.95 : 0.45).strokeRect(station.stop.x - width / 2, station.stop.y - height / 2, width, height);
-      this.stopMarker.fillStyle(color).fillCircle(station.stop.x, station.stop.y, active ? 7 : 4);
+      this.stopMarker.lineStyle(2, color, 0.5).strokeRect(station.stop.x - STREET.dockingHalfLength, station.stop.y - STREET.dockingHalfWidth, STREET.dockingHalfLength * 2, STREET.dockingHalfWidth * 2);
+      this.stopMarker.fillStyle(color).fillTriangle(station.stop.x + 40, station.stop.y - 6, station.stop.x + 40, station.stop.y + 6, station.stop.x + 53, station.stop.y);
     });
 
     this.residents.forEach((resident) => resident.setVisible(false));

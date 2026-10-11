@@ -1,14 +1,15 @@
 import type { CargoItem } from './CargoHold';
 import { CargoHold } from './CargoHold';
 import type { RoadGraph, RoutePoint } from './RoadGraph';
-import type { StationObservation } from './StationCycle';
+import type { StationObservation, StationDefinition } from './StationCycle';
 import { StationCycle } from './StationCycle';
+import { NAVIGATION, VEHICLE } from '../config/balance';
 
 export type RouteStation = Readonly<{
   id: string;
   name: string;
   scheduledOffsetSeconds: number;
-  stop: Readonly<{ x: number; y: number; radius: number; exitRadius: number }>;
+  stop: StationDefinition['stop'];
   buildingExit: RoutePoint;
   queueStart: RoutePoint;
   deliveries: readonly CargoItem[];
@@ -98,11 +99,11 @@ export class RouteMission {
     const path = this.roads.findPath(position, station.stop);
     const distance = this.roads.pathDistance(path);
     const arrived = this.arrivalSeconds !== undefined;
-    const etaSeconds = arrived ? 0 : distance / 145;
+    const etaSeconds = arrived ? 0 : distance / (NAVIGATION.cruiseSpeedKmh / VEHICLE.kmhPerSpeedUnit);
     const predictedArrival = arrived ? this.arrivalSeconds! : this.elapsedSeconds + etaSeconds;
     return {
-      path,
-      remainingMeters: arrived ? 0 : Math.round(distance * 2.5),
+      path: arrived ? [] : path,
+      remainingMeters: arrived ? 0 : Math.round(distance * NAVIGATION.metersPerPixel),
       etaSeconds,
       scheduledTime: this.formatClock(station.scheduledOffsetSeconds),
       delaySeconds: predictedArrival - station.scheduledOffsetSeconds,
