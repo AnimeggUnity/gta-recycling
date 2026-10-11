@@ -5,9 +5,15 @@ export const WORLD = {
   maxFrameSeconds: 0.25,
 } as const;
 
+export const SERVICE = {
+  residentTravelSeconds: 1.1,
+  delayGraceSeconds: 0.45,
+} as const;
+
 export const VEHICLE = {
   maxForwardSpeed: 285,
   maxReverseSpeed: 95,
+  boundaryMargin: 100,
   forwardAcceleration: 205,
   reverseAcceleration: 130,
   directionChangeBraking: 330,

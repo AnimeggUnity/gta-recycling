@@ -12,6 +12,7 @@ export type RouteStation = Readonly<{
   buildingExit: RoutePoint;
   queueStart: RoutePoint;
   deliveries: readonly CargoItem[];
+  residentDelays?: readonly number[];
 }>;
 
 export type StationResult = Readonly<{
@@ -65,6 +66,7 @@ export class RouteMission {
   }
 
   public update(observation: StationObservation, crewAnger: number, dt: number): void {
+    if (this.complete) return;
     this.elapsedSeconds += dt;
     this.peakAnger = Math.max(this.peakAnger, crewAnger);
     const cycle = this.activeCycle;
@@ -100,7 +102,7 @@ export class RouteMission {
     const predictedArrival = arrived ? this.arrivalSeconds! : this.elapsedSeconds + etaSeconds;
     return {
       path,
-      remainingMeters: Math.round(distance * 2.5),
+      remainingMeters: arrived ? 0 : Math.round(distance * 2.5),
       etaSeconds,
       scheduledTime: this.formatClock(station.scheduledOffsetSeconds),
       delaySeconds: predictedArrival - station.scheduledOffsetSeconds,

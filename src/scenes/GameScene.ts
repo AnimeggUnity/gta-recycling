@@ -25,6 +25,7 @@ export class GameScene extends Phaser.Scene {
   private attendantA!: Phaser.GameObjects.Container;
   private attendantB!: Phaser.GameObjects.Container;
   private cargoLayer!: Phaser.GameObjects.Graphics;
+  private carriedItem!: Phaser.GameObjects.Graphics;
   private reactionText!: Phaser.GameObjects.Text;
   private cameraTarget!: Phaser.GameObjects.Zone;
   private stopMarker!: Phaser.GameObjects.Graphics;
@@ -61,15 +62,12 @@ export class GameScene extends Phaser.Scene {
         attemptingToDrive: throttle !== 0,
         crewEfficiency: this.crew.efficiency,
       }, this.crew.anger, dt);
-      const safetyBrake = Boolean(this.mission.activeCycle?.departureLocked && throttle !== 0);
-      this.vehicle.update({
-        throttle: safetyBrake ? 0 : throttle,
-        steering,
-        brake: input.brake || safetyBrake,
-      }, dt);
+      const parked = Boolean(this.mission.activeCycle?.departureLocked) || this.mission.complete;
+      if (parked) this.vehicle.park();
+      else this.vehicle.update({ throttle, steering, brake: input.brake }, dt);
       const impact = this.potholes.update(this.vehicle.x, this.vehicle.y, this.vehicle.speed);
       this.pendingImpact = Math.max(this.pendingImpact, impact);
-      this.crew.update(this.vehicle.telemetry, impact, dt, {
+      if (!this.mission.complete) this.crew.update(this.vehicle.telemetry, impact, dt, {
         steeringInput: steering,
         residentDelaySeconds: this.mission.activeCycle?.residentDelaySeconds ?? 0,
       });
@@ -88,9 +86,10 @@ export class GameScene extends Phaser.Scene {
     const lookAheadSeconds = 0.42;
     const targetX = this.vehicle.x + this.vehicle.velocityX * lookAheadSeconds;
     const targetY = this.vehicle.y + this.vehicle.velocityY * lookAheadSeconds;
+    const cameraBlend = 1 - Math.exp(-6 * Math.min(deltaMs / 1000, WORLD.maxFrameSeconds));
     this.cameraTarget.setPosition(
-      Phaser.Math.Linear(this.cameraTarget.x, targetX, 0.1),
-      Phaser.Math.Linear(this.cameraTarget.y, targetY, 0.1),
+      Phaser.Math.Linear(this.cameraTarget.x, targetX, cameraBlend),
+      Phaser.Math.Linear(this.cameraTarget.y, targetY, cameraBlend),
     );
     const activeStation = this.mission.activeStation;
     const activeCycle = this.mission.activeCycle;
@@ -158,6 +157,8 @@ export class GameScene extends Phaser.Scene {
     g.fillStyle(0x222a30).fillRect(11, -26, 14, 8).fillRect(11, 18, 14, 8).fillRect(-84, -35, 14, 8).fillRect(-84, 27, 14, 8);
     this.cargoLayer = this.add.graphics();
     this.attendantA = this.createAttendant(-42, -14, 0x315b78);
+    this.carriedItem = this.add.graphics();
+    this.attendantA.add(this.carriedItem);
     this.attendantB = this.createAttendant(-67, 13, 0x476e3d);
     this.reactionText = this.add.text(-57, -52, '', {
       fontFamily: 'monospace',
@@ -232,7 +233,18 @@ export class GameScene extends Phaser.Scene {
         Phaser.Math.Linear(station.buildingExit.x, queueX, snapshot.entranceProgress),
         Phaser.Math.Linear(station.buildingExit.y, queueY, snapshot.entranceProgress),
       );
+      if (snapshot.queueIndex === 0) {
+        const cos = Math.cos(this.vehicle.rotation);
+        const sin = Math.sin(this.vehicle.rotation);
+        const tailX = this.vehicle.x - 117 * cos + 14 * sin;
+        const tailY = this.vehicle.y - 117 * sin - 14 * cos;
+        resident.setPosition(
+          Phaser.Math.Linear(resident.x, tailX, snapshot.handoffProgress),
+          Phaser.Math.Linear(resident.y, tailY, snapshot.handoffProgress),
+        );
+      }
       this.residentItems[index].clear().fillStyle(this.recyclingColor(snapshot.item.type)).fillRect(10, 7, 12, 12);
+      this.residentItems[index].setVisible(snapshot.hasItem);
     });
   }
 
@@ -242,9 +254,10 @@ export class GameScene extends Phaser.Scene {
     const riding = { x: -42, y: -14 };
     const tail = { x: -103, y: -14 };
     const sorting = { x: -62, y: 8 };
-    let target = riding;
+    const waitingPosition = (this.mission.activeCycle?.completedDeliveries ?? 0) > 0 ? sorting : riding;
+    let target = state === 'waiting' ? waitingPosition : riding;
 
-    if (state === 'moving-to-tail') target = this.mixPoint(riding, tail, p);
+    if (state === 'moving-to-tail') target = this.mixPoint(waitingPosition, tail, p);
     else if (state === 'receiving') target = tail;
     else if (state === 'carrying') target = this.mixPoint(tail, sorting, p);
     else if (state === 'sorting' || state === 'organizing') target = sorting;
@@ -254,6 +267,11 @@ export class GameScene extends Phaser.Scene {
     const swayX = this.crew.swayForward * 8 * ridingSway;
     const swayY = this.crew.swayLateral * 10 * ridingSway;
     this.attendantA.setPosition(target.x + swayX, target.y + swayY);
+    const item = this.mission.activeCycle?.currentItem;
+    this.carriedItem.clear();
+    if (item && (state === 'carrying' || state === 'sorting')) {
+      this.carriedItem.fillStyle(this.recyclingColor(item.type)).fillRect(-6, -12, 12, 12);
+    }
     const helperMoving = state === 'organizing';
     this.attendantB.setPosition(
       (helperMoving ? -68 + Math.sin(p * Math.PI * 2) * 18 : -67) + swayX,

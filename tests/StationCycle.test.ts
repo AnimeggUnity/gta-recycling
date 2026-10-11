@@ -12,6 +12,17 @@ const definition = {
 };
 
 describe('StationCycle', () => {
+  it('does not blame resident walking time or worker anger for resident delays', () => {
+    const station = new StationCycle({ ...definition, residentDelays: [2, 0] }, new CargoHold());
+    const stopped = { vehicleX: 100, vehicleY: 100, vehicleSpeed: 0, attemptingToDrive: false, crewEfficiency: 0.55 };
+    station.update(stopped, 0.1);
+    station.update(stopped, 0.8);
+    station.update(stopped, 1.2);
+    expect(station.residentDelaySeconds).toBe(0);
+    station.update(stopped, 0.6);
+    expect(station.residentDelaySeconds).toBeCloseTo(0.25);
+    expect(station.getResidents()[0].handoffProgress).toBe(1);
+  });
   it('requires a complete stop before starting service', () => {
     const station = new StationCycle(definition, new CargoHold());
     station.update({ vehicleX: 100, vehicleY: 100, vehicleSpeed: 30, attemptingToDrive: false }, 1);
@@ -51,7 +62,7 @@ describe('StationCycle', () => {
       station.update({ vehicleX: 100, vehicleY: 100, vehicleSpeed: 0, attemptingToDrive: false }, 0.8);
     }
 
-    for (let i = 0; i < 480; i += 1) {
+    for (let i = 0; i < 600; i += 1) {
       normal.update({ vehicleX: 100, vehicleY: 100, vehicleSpeed: 0, attemptingToDrive: false, crewEfficiency: 1 }, 1 / 60);
       angry.update({ vehicleX: 100, vehicleY: 100, vehicleSpeed: 0, attemptingToDrive: false, crewEfficiency: 0.55 }, 1 / 60);
     }

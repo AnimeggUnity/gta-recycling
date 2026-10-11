@@ -5,8 +5,10 @@ export type RoutePoint = Readonly<{ x: number; y: number }>;
 export class RoadGraph {
   private readonly nodeById = new Map<string, RoadNode>();
   private readonly neighbors = new Map<string, Readonly<{ id: string; cost: number }>[] >();
+  private readonly edges: readonly RoadEdge[];
 
   public constructor(public readonly nodes: readonly RoadNode[], edges: readonly RoadEdge[]) {
+    this.edges = edges;
     for (const node of nodes) {
       this.nodeById.set(node.id, node);
       this.neighbors.set(node.id, []);
@@ -21,6 +23,35 @@ export class RoadGraph {
   }
 
   public findPath(from: RoutePoint, to: RoutePoint): readonly RoutePoint[] {
+    if (this.edges.length === 0) return [from, to];
+    const start = this.projectToRoad(from);
+    const goal = this.projectToRoad(to);
+    const candidates: RoutePoint[][] = [];
+    if (start.edge === goal.edge) candidates.push([from, start.point, goal.point, to]);
+    for (const startId of [start.edge.from, start.edge.to]) {
+      for (const goalId of [goal.edge.from, goal.edge.to]) {
+        const nodePath = this.findNodePath(this.requireNode(startId), this.requireNode(goalId));
+        if (nodePath.length > 0) candidates.push([from, start.point, ...nodePath, goal.point, to]);
+      }
+    }
+    if (candidates.length === 0) return [];
+    const best = candidates.reduce((a, b) => this.pathDistance(a) <= this.pathDistance(b) ? a : b);
+    return best.filter((point, index) => index === 0 || this.distance(point, best[index - 1]) > 0.01);
+  }
+
+  private projectToRoad(point: RoutePoint): { edge: RoadEdge; point: RoutePoint } {
+    return this.edges.map((edge) => {
+      const a = this.requireNode(edge.from);
+      const b = this.requireNode(edge.to);
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const lengthSquared = dx * dx + dy * dy;
+      const t = lengthSquared === 0 ? 0 : Math.max(0, Math.min(1, ((point.x - a.x) * dx + (point.y - a.y) * dy) / lengthSquared));
+      return { edge, point: { x: a.x + dx * t, y: a.y + dy * t } };
+    }).reduce((a, b) => this.distance(point, a.point) <= this.distance(point, b.point) ? a : b);
+  }
+
+  private findNodePath(from: RoutePoint, to: RoutePoint): readonly RoutePoint[] {
     const start = this.nearestNode(from);
     const goal = this.nearestNode(to);
     const open = new Set<string>([start.id]);
@@ -41,7 +72,7 @@ export class RoadGraph {
         open.add(neighbor.id);
       }
     }
-    return [from, to];
+    return [];
   }
 
   public pathDistance(points: readonly RoutePoint[]): number {

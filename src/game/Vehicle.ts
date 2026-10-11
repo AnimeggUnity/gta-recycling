@@ -27,7 +27,6 @@ export class Vehicle {
   };
 
   private steering = 0;
-  private previousLongitudinalSpeed = 0;
   private previousAcceleration = 0;
 
   public get speed(): number {
@@ -35,6 +34,9 @@ export class Vehicle {
   }
 
   public update(input: DriverInput, dt: number): void {
+    if (dt <= 0) return;
+    const previousVelocityX = this.velocityX;
+    const previousVelocityY = this.velocityY;
     const forwardX = Math.cos(this.rotation);
     const forwardY = Math.sin(this.rotation);
     const rightX = -forwardY;
@@ -50,6 +52,14 @@ export class Vehicle {
     const steeringAuthority = Math.min(1, Math.abs(longitudinal) / 24);
     const travelDirection = longitudinal < -1 ? -1 : 1;
     this.rotation += this.steering * turnRate * steeringAuthority * travelDirection * dt;
+
+    // Preserve world momentum when the body rotates; tire forces then remove side slip.
+    const nextForwardX = Math.cos(this.rotation);
+    const nextForwardY = Math.sin(this.rotation);
+    const nextRightX = -nextForwardY;
+    const nextRightY = nextForwardX;
+    longitudinal = previousVelocityX * nextForwardX + previousVelocityY * nextForwardY;
+    lateral = previousVelocityX * nextRightX + previousVelocityY * nextRightY;
 
     if (input.brake) {
       longitudinal = this.approach(longitudinal, 0, VEHICLE.emergencyBraking * dt);
@@ -68,31 +78,37 @@ export class Vehicle {
     longitudinal = Math.max(-VEHICLE.maxReverseSpeed, Math.min(VEHICLE.maxForwardSpeed, longitudinal));
 
     const grip = input.brake ? VEHICLE.emergencyLateralGrip : VEHICLE.lateralGrip;
-    const previousLateral = lateral;
     lateral *= Math.exp(-grip * dt);
-
-    const nextForwardX = Math.cos(this.rotation);
-    const nextForwardY = Math.sin(this.rotation);
-    const nextRightX = -nextForwardY;
-    const nextRightY = nextForwardX;
     this.velocityX = nextForwardX * longitudinal + nextRightX * lateral;
     this.velocityY = nextForwardY * longitudinal + nextRightY * lateral;
     this.x += this.velocityX * dt;
     this.y += this.velocityY * dt;
-    this.x = Math.max(42, Math.min(WORLD.width - 42, this.x));
-    this.y = Math.max(42, Math.min(WORLD.height - 42, this.y));
+    const boundedX = Math.max(VEHICLE.boundaryMargin, Math.min(WORLD.width - VEHICLE.boundaryMargin, this.x));
+    const boundedY = Math.max(VEHICLE.boundaryMargin, Math.min(WORLD.height - VEHICLE.boundaryMargin, this.y));
+    if (boundedX !== this.x) this.velocityX = 0;
+    if (boundedY !== this.y) this.velocityY = 0;
+    this.x = boundedX;
+    this.y = boundedY;
 
-    const acceleration = (longitudinal - this.previousLongitudinalSpeed) / dt;
+    const accelerationX = (this.velocityX - previousVelocityX) / dt;
+    const accelerationY = (this.velocityY - previousVelocityY) / dt;
+    const acceleration = accelerationX * nextForwardX + accelerationY * nextForwardY;
     this.telemetry = {
       speed: this.speed,
-      longitudinalSpeed: longitudinal,
-      lateralSpeed: lateral,
+      longitudinalSpeed: this.velocityX * nextForwardX + this.velocityY * nextForwardY,
+      lateralSpeed: this.velocityX * nextRightX + this.velocityY * nextRightY,
       acceleration,
-      lateralAcceleration: (lateral - previousLateral) / dt,
+      lateralAcceleration: accelerationX * nextRightX + accelerationY * nextRightY,
       jerk: (acceleration - this.previousAcceleration) / dt,
     };
-    this.previousLongitudinalSpeed = longitudinal;
     this.previousAcceleration = acceleration;
+  }
+
+  public park(): void {
+    this.velocityX = 0;
+    this.velocityY = 0;
+    this.telemetry = { speed: 0, longitudinalSpeed: 0, lateralSpeed: 0, acceleration: 0, lateralAcceleration: 0, jerk: 0 };
+    this.previousAcceleration = 0;
   }
 
   private approach(value: number, target: number, amount: number): number {

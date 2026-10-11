@@ -36,6 +36,9 @@ describe('RouteMission', () => {
     expect(mission.complete).toBe(true);
     expect(mission.getSettlement()?.stationCount).toBe(1);
     expect(mission.getSettlement()?.peakAnger).toBe(20);
+    const result = mission.getSettlement();
+    mission.update({ ...stopped, vehicleX: 150 }, 100, 60);
+    expect(mission.getSettlement()).toEqual(result);
   });
 
   it('completes the configured three-stop route with shared cargo', () => {

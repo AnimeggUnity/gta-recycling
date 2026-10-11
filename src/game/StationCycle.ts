@@ -1,5 +1,6 @@
 import type { CargoItem } from './CargoHold';
 import { CargoHold, RECYCLING_LABELS } from './CargoHold';
+import { SERVICE } from '../config/balance';
 
 export type StationPhase = 'approaching' | 'stopping' | 'servicing' | 'organizing' | 'ready' | 'departed';
 export type WorkerState = 'riding' | 'waiting' | 'moving-to-tail' | 'receiving' | 'carrying' | 'sorting' | 'organizing' | 'returning';
@@ -10,6 +11,7 @@ export type StationDefinition = Readonly<{
   name: string;
   stop: Readonly<{ x: number; y: number; radius: number; exitRadius: number }>;
   deliveries: readonly CargoItem[];
+  residentDelays?: readonly number[];
 }>;
 
 export type StationObservation = Readonly<{
@@ -25,11 +27,13 @@ export type ResidentSnapshot = Readonly<{
   completed: boolean;
   queueIndex: number;
   entranceProgress: number;
+  handoffProgress: number;
+  hasItem: boolean;
   item: CargoItem;
 }>;
 
 const ACTION_DURATION: Record<ServiceAction, number> = {
-  'resident-arriving': 1.1,
+  'resident-arriving': SERVICE.residentTravelSeconds,
   'moving-to-tail': 0.7,
   receiving: 0.9,
   carrying: 1,
@@ -48,6 +52,7 @@ export class StationCycle {
   private actionElapsed = 0;
   private organizingElapsed = 0;
   private warningTimer = 0;
+  private capacityBlocked = false;
 
   public constructor(
     public readonly definition: StationDefinition,
@@ -64,7 +69,7 @@ export class StationCycle {
 
   public get residentDelaySeconds(): number {
     if (this.phase !== 'servicing' || this.action !== 'resident-arriving') return 0;
-    return Math.max(0, this.actionElapsed - 0.45);
+    return Math.max(0, this.actionElapsed - SERVICE.residentTravelSeconds - SERVICE.delayGraceSeconds);
   }
 
   public update(observation: StationObservation, dt: number): void {
@@ -112,17 +117,27 @@ export class StationCycle {
     return this.definition.deliveries.map((item, index) => {
       const entranceProgress = this.clamp((this.serviceElapsed - index * 0.45) / 0.75, 0, 1);
       const completed = index < this.completedDeliveries;
+      const atFront = index === this.completedDeliveries;
+      const handedOver = atFront && (this.action === 'carrying' || this.action === 'sorting');
+      const handoffProgress = atFront
+        ? this.action === 'resident-arriving'
+          ? this.clamp(this.actionElapsed / SERVICE.residentTravelSeconds, 0, 1)
+          : 1
+        : 0;
       return {
         item,
         completed,
-        visible: this.serviceElapsed > index * 0.45 && !completed && this.phase !== 'departed',
+        visible: this.serviceElapsed > index * 0.45 && !completed && !handedOver && this.phase !== 'departed',
         queueIndex: Math.max(0, index - this.completedDeliveries),
         entranceProgress,
+        handoffProgress,
+        hasItem: !handedOver,
       };
     });
   }
 
   public getStatusText(): string {
+    if (this.capacityBlocked) return '⚠ 車斗容量不足，無法接收下一件回收物';
     if (this.warningTimer > 0) return '⚠ 隨車人員尚未安全就位，禁止離站';
     switch (this.phase) {
       case 'approaching': return `前往${this.definition.name}`;
@@ -133,7 +148,7 @@ export class StationCycle {
       }
       case 'organizing': return this.workerState === 'returning' ? '隨車人員正在安全就位' : '整理並固定車斗回收物';
       case 'ready': return '✓ 作業完成，可以安全離站';
-      case 'departed': return '✓ 和平東路收運完成';
+      case 'departed': return `✓ ${this.definition.name}收運完成`;
     }
   }
 
@@ -146,21 +161,26 @@ export class StationCycle {
 
   private updateService(dt: number, workRate: number): void {
     this.serviceElapsed += dt;
-    this.actionElapsed += dt * workRate;
-    this.workerProgress = this.clamp(this.actionElapsed / ACTION_DURATION[this.action], 0, 1);
+    // Residents have their own clock; worker efficiency must not make residents slower.
+    this.actionElapsed += dt * (this.action === 'resident-arriving' ? 1 : workRate);
+    const duration = this.action === 'resident-arriving'
+      ? SERVICE.residentTravelSeconds + (this.definition.residentDelays?.[this.completedDeliveries] ?? 0)
+      : ACTION_DURATION[this.action];
+    this.workerProgress = this.clamp(this.actionElapsed / duration, 0, 1);
 
     if (this.action === 'resident-arriving') this.workerState = 'waiting';
     else this.workerState = this.action;
 
-    if (this.actionElapsed < ACTION_DURATION[this.action]) return;
+    if (this.actionElapsed < duration) return;
 
     if (this.action === 'sorting') {
       const item = this.currentItem;
       if (item && !this.cargo.add(item)) {
-        this.warningTimer = 1.4;
+        this.capacityBlocked = true;
         this.actionElapsed = 0;
         return;
       }
+      this.capacityBlocked = false;
       this.completedDeliveries += 1;
       if (this.completedDeliveries >= this.definition.deliveries.length) {
         this.phase = 'organizing';

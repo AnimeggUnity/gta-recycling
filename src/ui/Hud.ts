@@ -1,6 +1,7 @@
 export class Hud {
   public readonly element: HTMLDivElement;
   private readonly settlement: HTMLDivElement;
+  private settlementMarkup = '';
 
   public constructor() {
     this.element = document.createElement('div');
@@ -43,8 +44,8 @@ export class Hud {
     const angerBlocks = Math.round(data.crewAnger / 10);
     const angerBar = `${'■'.repeat(angerBlocks)}${'□'.repeat(10 - angerBlocks)}`;
     const angerClass = data.crewAnger >= 50 ? 'danger' : data.crewAnger >= 25 ? 'warning' : 'calm';
-    const delay = data.delaySeconds > 1 ? `延誤 ${Math.round(data.delaySeconds)} 秒` : `預估提早 ${Math.round(Math.abs(data.delaySeconds))} 秒`;
-    this.element.innerHTML = [
+    const delay = data.settlement ? '路線完成' : data.delaySeconds > 1 ? `延誤 ${Math.round(data.delaySeconds)} 秒` : `預估提早 ${Math.round(Math.abs(data.delaySeconds))} 秒`;
+    const markup = [
       `<strong>第 ${Math.min(data.stationNumber, data.stationCount)}/${data.stationCount} 站：${data.stationName}</strong>`,
       `距離 ${data.distanceMeters} m　ETA ${this.duration(data.etaSeconds)}　預定 ${data.scheduledTime}`,
       `${delay}　車速 ${Math.round(data.speed * 0.35)} km/h　${handling}`,
@@ -55,17 +56,24 @@ export class Hud {
       `作業效率 ${Math.round(data.crewEfficiency * 100)}%`,
       '<small>方向鍵／WASD 駕駛　Space 緊急煞車</small>',
     ].join('<br>');
+    if (this.element.innerHTML !== markup) this.element.innerHTML = markup;
 
     this.settlement.hidden = !data.settlement;
     if (data.settlement) {
-      this.settlement.innerHTML = [
+      const settlementMarkup = [
         '<strong>三站收運完成</strong>',
         `<b>${data.settlement.score}</b> 分`,
         `完成時間 ${this.duration(data.settlement.totalSeconds)}`,
         `累計延誤 ${Math.round(data.settlement.totalDelaySeconds)} 秒`,
         `最高怒氣 ${Math.round(data.settlement.peakAnger)}/100`,
         `完成站數 ${data.settlement.stationCount}/${data.stationCount}`,
+        '<button type="button" id="restart-mission">重新出車</button>',
       ].join('<br>');
+      if (this.settlementMarkup !== settlementMarkup) {
+        this.settlementMarkup = settlementMarkup;
+        this.settlement.innerHTML = settlementMarkup;
+        this.settlement.querySelector('button')?.addEventListener('click', () => window.location.reload());
+      }
     }
   }
 

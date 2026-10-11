@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import './style.css';
 import { GameScene } from './scenes/GameScene';
 
-new Phaser.Game({
+export const game = new Phaser.Game({
   type: Phaser.AUTO,
   parent: 'game',
   width: 960,
