@@ -2,6 +2,7 @@ import { ROUTE_STATIONS } from '../config/stations';
 import { STREET, TRAFFIC, VEHICLE, WORLD } from '../config/balance';
 import type { RoutePoint } from '../game/RoadGraph';
 import type { SignalColor } from '../game/TrafficSystem';
+import type { StationPhase } from '../game/StationCycle';
 
 export class Hud {
   public readonly element: HTMLDivElement;
@@ -23,6 +24,8 @@ export class Hud {
     lateralSpeed: number;
     distanceMeters: number;
     status: string;
+    servicePhase?: StationPhase;
+    urgentWarning?: boolean;
     cargoVolume: number;
     maxCargoVolume: number;
     cargoWeight: number;
@@ -59,7 +62,11 @@ export class Hud {
     const nextPoint = data.navigationPath.find((point) => Math.hypot(point.x - data.vehicleX, point.y - data.vehicleY) > 15);
     const bearing = nextPoint ? Math.atan2(nextPoint.y - data.vehicleY, nextPoint.x - data.vehicleX) - data.vehicleRotation : 0;
     const atStop = data.distanceMeters === 0 && data.navigationPath.length === 0;
-    const markup = `
+    const mobile = document.body.dataset?.device === 'mobile';
+    const showService = !data.settlement && (data.urgentWarning || (data.servicePhase && data.servicePhase !== 'approaching'));
+    const markup = mobile ? `
+      <section class="mobile-speed ${overspeed ? 'speed-warning' : ''}" aria-label="車速"><div class="speed-number">${speed}<small>km/h</small></div></section>
+      ${showService ? `<div class="mobile-service" role="status">${data.status}</div>` : ''}` : `
       <section class="nav-panel panel">
         <div class="eyebrow">TAIWAN RECYCLING RUN <span>收運勤務</span></div>
         <div class="brand">街頭回收隊<span class="route-counter">${Math.min(data.stationNumber, data.stationCount)} / ${data.stationCount} 站</span></div>
@@ -85,7 +92,7 @@ export class Hud {
 
     this.settlement.hidden = !data.settlement;
     if (data.settlement) {
-      const settlementMarkup = `<div class="eyebrow">SHIFT COMPLETE / 收運報告</div><strong>辛苦了，收工！</strong><p>三站回收物已完成收運</p><div class="score"><b>${data.settlement.score}</b><span>勤務評分</span></div><div class="report-row"><span>完成時間</span><span>${this.duration(data.settlement.totalSeconds)}</span></div><div class="report-row"><span>累計延誤</span><span>${Math.round(data.settlement.totalDelaySeconds)} 秒</span></div><div class="report-row"><span>最高怒氣</span><span>${Math.round(data.settlement.peakAnger)} / 100</span></div><div class="report-row"><span>完成站數</span><span>${data.settlement.stationCount} / ${data.stationCount}</span></div><button type="button" id="restart-mission">重新出車 →</button>`;
+      const settlementMarkup = `<div class="eyebrow">SHIFT COMPLETE / 收運報告</div><strong>辛苦了，收工！</strong><p>三站回收物已完成收運</p><div class="score"><b>${data.settlement.score}</b><span>勤務評分</span></div><div class="report-row"><span>完成時間</span><span>${this.duration(data.settlement.totalSeconds)}</span></div><div class="report-row"><span>累計延誤</span><span>${Math.round(data.settlement.totalDelaySeconds)} 秒</span></div>${mobile ? '' : `<div class="report-row"><span>最高怒氣</span><span>${Math.round(data.settlement.peakAnger)} / 100</span></div>`}<div class="report-row"><span>完成站數</span><span>${data.settlement.stationCount} / ${data.stationCount}</span></div><button type="button" id="restart-mission">重新出車 →</button>`;
       if (this.settlementMarkup !== settlementMarkup) {
         this.settlementMarkup = settlementMarkup;
         this.settlement.innerHTML = settlementMarkup;

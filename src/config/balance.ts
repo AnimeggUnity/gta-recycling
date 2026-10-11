@@ -14,6 +14,8 @@ export const DISPLAY = {
   wheelTravelRatio: 0.35,
   touchLookAheadSeconds: 0.2,
   touchCameraOffsetRatio: 0.12,
+  crewFaceOffset: 10,
+  crewFaceRadius: 12,
 } as const;
 
 export const SERVICE = {

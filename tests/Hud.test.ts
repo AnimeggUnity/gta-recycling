@@ -11,7 +11,7 @@ const data = {
   navigationPath: [{ x: 400, y: 520 }, { x: 780, y: 520 }],
 };
 
-function mountHud() {
+function mountHud(device = 'desktop') {
   const nodes: { innerHTML: string; hidden: boolean; className: string; querySelector: ReturnType<typeof vi.fn> }[] = [];
   const restart = vi.fn();
   vi.stubGlobal('document', {
@@ -20,7 +20,7 @@ function mountHud() {
       nodes.push(node);
       return node;
     },
-    body: { append: vi.fn() },
+    body: { append: vi.fn(), dataset: { device } },
   });
   return { hud: new Hud(), nodes, restart };
 }
@@ -28,6 +28,34 @@ function mountHud() {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('HUD presentation', () => {
+  it('renders only speed while driving on a mobile device, even with keyboard controls', () => {
+    const { hud } = mountHud('mobile');
+    hud.update({ ...data, servicePhase: 'approaching' });
+    expect(hud.element.innerHTML).toContain('mobile-speed');
+    for (const removed of ['nav-panel', 'map-panel', 'crew-panel', '怒氣', '效率', 'ETA', 'controls-hint', 'mobile-service']) {
+      expect(hud.element.innerHTML).not.toContain(removed);
+    }
+  });
+
+  it('keeps collection and collision prompts without restoring mobile navigation', () => {
+    const { hud } = mountHud('mobile');
+    hud.update({ ...data, servicePhase: 'servicing' });
+    expect(hud.element.innerHTML).toContain('正在收運');
+    expect(hud.element.innerHTML).toContain('mobile-service');
+    hud.update({ ...data, servicePhase: 'approaching', urgentWarning: true, status: '撞到機車' });
+    expect(hud.element.innerHTML).toContain('撞到機車');
+    hud.update({ ...data, servicePhase: 'approaching', urgentWarning: false });
+    expect(hud.element.innerHTML).not.toContain('mobile-service');
+  });
+
+  it('omits anger numbers from the mobile completion report but keeps restart', () => {
+    const { hud, nodes, restart } = mountHud('mobile');
+    hud.update({ ...data, settlement: { score: 88, totalSeconds: 120, totalDelaySeconds: 5, peakAnger: 55, stationCount: 3 } });
+    expect(nodes[1].innerHTML).not.toContain('最高怒氣');
+    expect(nodes[1].innerHTML).toContain('重新出車');
+    expect(restart).toHaveBeenCalledTimes(1);
+  });
+
   it('uses real vehicle coordinates and route points in the minimap', () => {
     const { hud } = mountHud();
     hud.update(data);

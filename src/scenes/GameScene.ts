@@ -16,7 +16,7 @@ import { Vehicle } from '../game/Vehicle';
 import { DrivingControls } from '../ui/DrivingControls';
 import { Hud } from '../ui/Hud';
 import { drawStreetArt } from './StreetArt';
-import { drawPerson, drawTruckBody } from './TruckArt';
+import { drawCrewExpression, drawPerson, drawTruckBody } from './TruckArt';
 import { TrafficArt } from './TrafficArt';
 
 export class GameScene extends Phaser.Scene {
@@ -38,6 +38,7 @@ export class GameScene extends Phaser.Scene {
   private cargoLayer!: Phaser.GameObjects.Graphics;
   private carriedItem!: Phaser.GameObjects.Graphics;
   private reactionText!: Phaser.GameObjects.Text;
+  private crewFace!: Phaser.GameObjects.Graphics;
   private cameraTarget!: Phaser.GameObjects.Zone;
   private stopMarker!: Phaser.GameObjects.Graphics;
   private navigationLayer!: Phaser.GameObjects.Graphics;
@@ -140,6 +141,8 @@ export class GameScene extends Phaser.Scene {
       lateralSpeed: this.vehicle.telemetry.lateralSpeed,
       distanceMeters: navigation.remainingMeters,
       status: this.collisionWarningSeconds > 0 ? this.collisionLabel : activeCycle?.getStatusText() ?? '✓ 三站路線全部完成',
+      servicePhase: activeCycle?.phase,
+      urgentWarning: this.collisionWarningSeconds > 0,
       cargoVolume: this.cargo.volume,
       maxCargoVolume: this.cargo.maxVolume,
       cargoWeight: this.cargo.weight,
@@ -180,7 +183,8 @@ export class GameScene extends Phaser.Scene {
       backgroundColor: '#1b2229dd',
       padding: { x: 4, y: 2 },
     }).setOrigin(0.5);
-    return this.add.container(this.vehicle.x, this.vehicle.y, [g, this.cargoLayer, this.attendantA, this.attendantB, this.reactionText]);
+    this.crewFace = this.add.graphics();
+    return this.add.container(this.vehicle.x, this.vehicle.y, [g, this.cargoLayer, this.attendantA, this.attendantB, this.reactionText, this.crewFace]);
   }
 
   private createAttendant(x: number, y: number, shirtColor: number): Phaser.GameObjects.Container {
@@ -288,8 +292,15 @@ export class GameScene extends Phaser.Scene {
       (helperMoving ? 13 - p * 12 : 13) + swayY,
     );
     const reaction = { calm: '', annoyed: '…', angry: '!', furious: '怒' }[this.crew.reaction];
-    this.reactionText.setText(reaction).setVisible(reaction !== '');
+    const mobile = document.body.dataset.device === 'mobile';
+    this.reactionText.setText(reaction).setVisible(!mobile && reaction !== '');
     this.reactionText.setRotation(DISPLAY.uprightRotation - this.vehicle.rotation);
+    this.crewFace.setVisible(mobile);
+    if (mobile) {
+      this.crewFace.setPosition(this.attendantA.x + DISPLAY.crewFaceOffset, this.attendantA.y);
+      this.crewFace.setRotation(DISPLAY.uprightRotation - this.vehicle.rotation);
+      drawCrewExpression(this.crewFace, this.crew.reaction);
+    }
   }
 
   private updateCargoVisuals(): void {

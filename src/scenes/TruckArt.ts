@@ -1,4 +1,31 @@
-import Phaser from 'phaser';
+import type Phaser from 'phaser';
+import type { CrewReaction } from '../game/CrewDynamics';
+import { DISPLAY } from '../config/balance';
+
+// A code-drawn face stays legible on the worker without a separate HUD panel.
+export function drawCrewExpression(g: Phaser.GameObjects.Graphics, reaction: CrewReaction): void {
+  g.clear();
+  const color = { calm: 0xf0d38e, annoyed: 0xefb55c, angry: 0xf08355, furious: 0xed5551 }[reaction];
+  g.fillStyle(0x183033).fillCircle(0, 0, DISPLAY.crewFaceRadius + 2);
+  g.fillStyle(color).fillCircle(0, 0, DISPLAY.crewFaceRadius);
+  g.lineStyle(2, 0x382a29);
+  if (reaction === 'calm') {
+    g.fillStyle(0x382a29).fillCircle(-4, -2, 1.5).fillCircle(4, -2, 1.5);
+    g.lineBetween(-5, 4, 0, 7).lineBetween(0, 7, 5, 4);
+  } else if (reaction === 'annoyed') {
+    g.lineBetween(-7, -3, -2, -3).lineBetween(2, -3, 7, -3).lineBetween(-4, 5, 4, 5);
+  } else {
+    g.lineBetween(-8, -6, -2, -2).lineBetween(2, -2, 8, -6);
+    g.fillStyle(0x382a29).fillCircle(-4, 0, 1.5).fillCircle(4, 0, 1.5);
+    if (reaction === 'angry') g.lineBetween(-5, 7, 0, 4).lineBetween(0, 4, 5, 7);
+    else {
+      g.fillStyle(0x382a29).fillEllipse(0, 6, 9, 7);
+      g.fillStyle(0xffe4b1).fillRect(-3, 3, 6, 2);
+      g.lineStyle(2, 0xffe4b1).lineBetween(15, -9, 19, -9).lineBetween(17, -11, 17, -7);
+      g.lineBetween(-15, -5, -18, -9).lineBetween(-15, -10, -18, -14);
+    }
+  }
+}
 
 export function drawTruckBody(g: Phaser.GameObjects.Graphics): void {
   // Cabin points along local +X, matching driving physics.
