@@ -150,7 +150,7 @@ export class StationCycle {
     if (this.warningTimer > 0) return '⚠ 隨車人員尚未安全就位，禁止離站';
     switch (this.phase) {
       case 'approaching': return `前往${this.definition.name}`;
-      case 'stopping': return this.stopTimer > 0 ? '保持停車，準備收運' : '靠右停入黃色區，車頭朝東並完全停車';
+      case 'stopping': return this.stopTimer > 0 ? '保持停車，準備收運' : '靠右停入黃色區，車頭朝上並完全停車';
       case 'servicing': {
         const item = this.currentItem;
         return item ? `收運中：${RECYCLING_LABELS[item.type]}（${this.completedDeliveries + 1}/${this.definition.deliveries.length}）` : '收運完成';

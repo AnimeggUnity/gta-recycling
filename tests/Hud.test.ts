@@ -33,6 +33,8 @@ describe('HUD presentation', () => {
     hud.update(data);
     expect(hud.element.innerHTML).toContain('translate(67 149) rotate(-90)');
     expect(hud.element.innerHTML).toContain('points="67,149 130,149"');
+    expect(hud.element.innerHTML).toContain('viewBox="0 0 340 1000"');
+    expect(hud.element.innerHTML).toContain('由下往上，三站位於道路右側');
     expect(hud.element.innerHTML).toContain('transform:rotate(1.5707963267948966rad)');
     expect(hud.element.innerHTML).toContain('speed-warning');
     expect(hud.element.innerHTML).toContain('怒氣 <b>55</b>');

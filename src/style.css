@@ -1,7 +1,9 @@
 :root { color-scheme: dark; font-family: 'Noto Sans TC', system-ui, sans-serif; background: #15272a; color: #e6ead7; }
 * { box-sizing: border-box; }
 body { margin: 0; min-height: 100dvh; display: grid; place-items: center; overflow: hidden; }
-#game canvas { display: block; image-rendering: pixelated; box-shadow: 0 18px 60px #0007; }
+#game { position: fixed; inset: 0; width: 100%; height: 100dvh; touch-action: none; }
+#game canvas { display: block; image-rendering: pixelated; touch-action: none; }
+html, body { overscroll-behavior: none; }
 .hud { position: fixed; inset: 0; z-index: 2; pointer-events: none; font-size: 13px; }
 .panel { position: absolute; background: #183033ed; border: 1px solid #63847970; box-shadow: 4px 4px 0 #10212365; padding: 16px; }
 .eyebrow { display: flex; justify-content: space-between; gap: 14px; color: #8fac9f; font: 10px/1.5 ui-monospace, monospace; letter-spacing: .12em; }
@@ -22,8 +24,9 @@ body { margin: 0; min-height: 100dvh; display: grid; place-items: center; overfl
 .traffic-status { font-size: 10px; color: #aac2b0; line-height: 1.5; margin-top: 8px; }
 .traffic-status i { display: inline-block; width: 7px; height: 7px; background: #8cae96; margin-right: 6px; border-radius: 50%; }.traffic-status.red { color: #f0a08c; }.traffic-status.red i { background: #ee795e; }.traffic-status.yellow { color: #f1cb73; }.traffic-status.yellow i { background: #f1cb73; }.traffic-status.green i { background: #86d0a0; }
 .hud-status { border-top: 1px solid #59706777; padding-top: 10px; margin-top: 10px; color: #dfc584; font-size: 12px; line-height: 1.5; }
-.map-panel { right: 24px; top: 24px; width: 200px; padding: 10px; }
+.map-panel { right: 24px; top: 66px; width: 108px; padding: 8px; }
 .map-panel svg { display: block; width: 100%; margin-top: 8px; border: 1px solid #59706766; }
+.map-panel .eyebrow { font-size: 9px; letter-spacing: 0; gap: 4px; }
 .crew-panel { left: 24px; bottom: 24px; width: 310px; }
 .crew-heading { display: flex; justify-content: space-between; align-items: baseline; margin: 9px 0; }
 .crew-heading strong { font-size: 17px; }
@@ -58,3 +61,57 @@ kbd { font: 10px ui-monospace, monospace; color: #cde0c7; } .controls-hint>span 
 @media (max-width: 600px) { .nav-panel { width: calc(100% - 24px); }.brand { margin-bottom: 10px; }.nav-metrics { display: flex; gap: 24px; margin: 10px 0; }.nav-metrics div { display: flex; gap: 8px; align-items: baseline; }.nav-metrics b { font-size: 22px; }.destination { gap: 10px; }.map-panel { top: 290px; width: 130px; padding: 8px; }.crew-panel { width: calc(100% - 160px); min-width: 190px; }.crew-heading { display: block; }.crew-heading strong { display: block; font-size: 14px; }.crew-heading b { font-size: 20px; }.cargo-legend { display: block; line-height: 1.6; }.cargo-legend>span { display: block; }.speed-panel { width: 130px; }.speed-number { font-size: 46px; }.speed-note { font-size: 9px; }.controls-hint { left: 12px; right: auto; bottom: 250px; font-size: 9px; }.eyebrow { font-size: 9px; letter-spacing: .03em; } }
 @media (max-height: 450px) and (min-width: 601px) { .nav-panel { padding: 9px 12px; width: 235px; }.nav-panel>.eyebrow { display: none; }.brand { font-size: 17px; margin: 0 0 7px; }.destination strong { font-size: 12px; }.destination small { font-size: 9px; }.turn-icon { width: 28px; height: 28px; font-size: 25px; }.nav-metrics { display: flex; gap: 14px; margin: 6px 0; }.nav-metrics div { display: flex; align-items: baseline; gap: 5px; }.nav-metrics div+div { padding-left: 10px; }.nav-metrics b { font-size: 19px; }.nav-metrics small { font-size: 9px; }.schedule { font-size: 9px; }.hud-status { padding-top: 6px; margin-top: 6px; font-size: 10px; }.crew-panel { width: 260px; padding: 8px 12px; }.crew-heading { margin: 4px 0; }.crew-heading strong { font-size: 14px; }.crew-heading b { font-size: 19px; }.anger-reason { margin: 5px 0; }.cargo-heading { margin: 4px 0; }.cargo-legend { margin-top: 5px; }.settlement { padding: 14px 22px; width: 330px; }.settlement strong { font-size: 23px; margin-top: 8px; }.settlement p { margin: 4px 0; }.score { margin: 10px 0; }.score b { font-size: 46px; }.report-row { padding: 5px 0; }.settlement button { margin-top: 12px; padding: 8px; } }
 @media (max-height: 450px) and (min-width: 601px) { .traffic-status { margin-top: 4px; font-size: 9px; } }
+
+/* Touch UI: independent pointer targets, safe-area spacing, and no scroll gestures. */
+.input-mode-toggle { position: fixed; top: max(14px, env(safe-area-inset-top)); right: max(24px, env(safe-area-inset-right)); z-index: 5; padding: 7px 10px; border: 1px solid #779c8c; background: #193235ec; color: #d5e2c8; font: 11px system-ui, sans-serif; cursor: pointer; touch-action: manipulation; }
+.touch-controls { position: fixed; inset: auto 0 0; height: 176px; padding: 10px max(16px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); z-index: 4; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(transparent, #10262bcc 38%); pointer-events: none; user-select: none; -webkit-user-select: none; }
+.touch-controls[hidden] { display: none; }
+.touch-controls button { pointer-events: auto; touch-action: none; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; cursor: pointer; }
+.steering-control { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.touch-wheel { --steering: 0; position: relative; display: grid; place-items: center; width: 124px; height: 124px; border: 2px solid #89af9f; border-radius: 50%; background: #203d42e8; color: #ccdcc1; box-shadow: 0 4px 0 #0b1e23; }
+.wheel-ring { display: grid; place-items: center; width: 86px; height: 86px; border: 8px solid #95b0a0; border-radius: 50%; font: 700 32px system-ui, sans-serif; transform: rotate(calc(var(--steering) * 40deg)); }
+.wheel-dot { position: absolute; left: calc(50% - 7px + var(--steering) * 37px); top: 53px; width: 14px; height: 14px; border-radius: 50%; background: #edce83; box-shadow: 0 0 12px #e5c98066; }
+.touch-caption { font-size: 10px; color: #a5c0ae; }
+.pedal-controls { display: grid; grid-template-columns: repeat(3, 62px); gap: 9px; align-items: end; }
+.touch-pedal { display: flex; flex-direction: column; justify-content: center; align-items: center; width: 62px; height: 86px; border: 1px solid #86a799; border-radius: 14px; background: #23424aef; color: #dfdfc3; font: 700 32px/1 system-ui, sans-serif; box-shadow: 0 4px 0 #0b1e23; }
+.touch-pedal small { font-size: 12px; margin-top: 9px; }.touch-pedal.forward { height: 110px; background: #668774ef; color: #f1efcf; border-color: #b3c89e; }.touch-pedal.brake { background: #804e42ef; color: #ffe3bf; border-color: #c78e70; }
+.touch-controls .held { filter: brightness(1.3); box-shadow: 0 0 0 3px #d5d9a74d; }
+body[data-controls='touch'] .controls-hint { display: none; }
+body[data-controls='touch'] .crew-panel { bottom: calc(186px + env(safe-area-inset-bottom)); }
+body[data-controls='touch'] .speed-panel { bottom: calc(186px + env(safe-area-inset-bottom)); }
+@media (max-width: 900px) { .map-panel { top: 54px; width: 88px; }.map-panel .eyebrow span { display: none; }.input-mode-toggle { right: 12px; top: max(12px, env(safe-area-inset-top)); } }
+@media (max-width: 700px) {
+  .nav-panel { left: max(8px, env(safe-area-inset-left)); top: max(8px, env(safe-area-inset-top)); width: calc(100% - max(8px, env(safe-area-inset-left)) - max(8px, env(safe-area-inset-right))); padding: 8px 10px; }
+  .nav-panel>.eyebrow { display: none; }.brand { font-size: 17px; margin: 0 0 6px; line-height: 1.2; }.route-counter { margin-right: 78px; font-size: 9px; padding: 3px 5px; }
+  .input-mode-toggle { top: max(14px, calc(env(safe-area-inset-top) + 6px)); right: max(16px, env(safe-area-inset-right)); padding: 3px 6px; font-size: 10px; }
+  .destination { display: inline-flex; width: 56%; gap: 6px; vertical-align: top; }.turn-icon { width: 28px; height: 28px; font-size: 23px; flex-shrink: 0; }.destination small { font-size: 8px; margin-bottom: 2px; }.destination strong { font-size: 11px; }
+  .nav-metrics { display: inline-flex; width: 42%; margin: 0; gap: 12px; vertical-align: top; }.nav-metrics div { display: block; }.nav-metrics div+div { padding: 0; border: 0; }.nav-metrics b { font-size: 17px; }.nav-metrics small { font-size: 8px; white-space: nowrap; }
+  .schedule { font-size: 9px; margin-top: 5px; }.traffic-status { margin-top: 4px; font-size: 9px; }.hud-status { font-size: 10px; margin-top: 5px; padding-top: 5px; }
+  .map-panel { top: max(162px, calc(env(safe-area-inset-top) + 154px)); right: 8px; width: 53px; padding: 3px; }.map-panel .eyebrow { display: none; }.map-panel svg { margin-top: 0; }
+  body[data-controls='touch'] .crew-panel { left: 8px; width: calc(100% - 96px); min-width: 0; bottom: calc(182px + env(safe-area-inset-bottom)); padding: 8px 10px; }
+  body[data-controls='touch'] .crew-panel .eyebrow { font-size: 8px; }
+  body[data-controls='touch'] .crew-heading { display: flex; margin: 3px 0; }.crew-heading strong { font-size: 11px; }.crew-heading b { font-size: 16px; }.crew-heading small { font-size: 8px; }
+  body[data-controls='touch'] .meter { height: 4px; }body[data-controls='touch'] .anger-reason { font-size: 9px; margin: 4px 0; min-height: 0; }
+  body[data-controls='touch'] .cargo-heading { font-size: 9px; margin: 3px 0; }body[data-controls='touch'] .cargo-legend { display: none; }
+  body[data-controls='touch'] .speed-panel { right: 8px; width: 72px; bottom: calc(182px + env(safe-area-inset-bottom)); padding: 8px; }.speed-panel .eyebrow { font-size: 8px; }.speed-panel .eyebrow span { display: none; }body[data-controls='touch'] .speed-number { display: block; font-size: 28px; }body[data-controls='touch'] .speed-number small { display: block; font-size: 9px; }body[data-controls='touch'] .speed-note { display: none; }
+  .touch-controls { padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); }.touch-wheel { width: 110px; height: 110px; }.wheel-ring { width: 78px; height: 78px; }.wheel-dot { top: 46px; }
+  .pedal-controls { grid-template-columns: repeat(3, 58px); gap: 8px; }.touch-pedal { width: 58px; height: 80px; }.touch-pedal.forward { height: 100px; }
+}
+@media (max-width: 360px) { .touch-wheel { width: 96px; height: 96px; }.wheel-ring { width: 66px; height: 66px; border-width: 6px; }.wheel-dot { top: 39px; }.pedal-controls { grid-template-columns: repeat(3, 54px); gap: 6px; }.touch-pedal { width: 54px; }.nav-metrics { gap: 7px; }.destination strong { font-size: 10px; } }
+@media (max-width: 700px) {
+  body[data-controls='keyboard'] .crew-panel { left: 8px; bottom: 12px; width: calc(100% - 96px); min-width: 0; padding: 8px 10px; }
+  body[data-controls='keyboard'] .crew-heading { display: flex; margin: 3px 0; }body[data-controls='keyboard'] .anger-reason { font-size: 9px; margin: 4px 0; min-height: 0; }body[data-controls='keyboard'] .cargo-legend { display: none; }
+  body[data-controls='keyboard'] .speed-panel { right: 8px; bottom: 12px; width: 72px; padding: 8px; }body[data-controls='keyboard'] .speed-number { display: block; font-size: 28px; }body[data-controls='keyboard'] .speed-number small { display: block; font-size: 9px; }body[data-controls='keyboard'] .speed-note { display: none; }body[data-controls='keyboard'] .controls-hint { bottom: 144px; }
+}
+@media (max-height: 700px) and (max-width: 700px) {
+  .touch-controls { height: 138px; }.touch-wheel { width: 96px; height: 96px; }.wheel-ring { width: 66px; height: 66px; border-width: 6px; }.wheel-dot { top: 39px; }.touch-pedal { height: 68px; font-size: 26px; }.touch-pedal.forward { height: 88px; }.touch-pedal small { margin-top: 6px; font-size: 11px; }
+  body[data-controls='touch'] .crew-panel, body[data-controls='touch'] .speed-panel { bottom: calc(144px + env(safe-area-inset-bottom)); }body[data-controls='touch'] .anger-reason { display: none; }
+}
+@media (max-height: 500px) and (min-width: 701px) {
+  .touch-controls { height: 122px; padding: 4px max(14px, env(safe-area-inset-right)) max(4px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left)); background: none; }.touch-wheel { width: 90px; height: 90px; }.wheel-ring { width: 66px; height: 66px; border-width: 6px; }.wheel-dot { top: 35px; }.touch-pedal { height: 62px; font-size: 25px; }.touch-pedal.forward { height: 82px; }.touch-caption { display: none; }
+  body[data-controls='touch'] .crew-panel { bottom: 136px; width: 225px; padding: 8px; }.crew-panel .anger-reason { display: none; }body[data-controls='touch'] .crew-panel .cargo-legend { display: none; }body[data-controls='touch'] .speed-panel { bottom: 136px; width: 106px; padding: 8px; }body[data-controls='touch'] .speed-number { font-size: 36px; }.map-panel { top: 54px; right: 132px; width: 52px; padding: 3px; }.map-panel .eyebrow { display: none; }
+  body[data-controls='touch'] .nav-panel { width: 300px; padding: 7px 10px; }body[data-controls='touch'] .brand { display: none; }body[data-controls='touch'] .destination { display: inline-flex; width: 55%; }body[data-controls='touch'] .nav-metrics { display: inline-flex; width: 43%; gap: 8px; }body[data-controls='touch'] .schedule { display: none; }
+  body[data-controls='touch'] .nav-metrics div { display: block; }body[data-controls='touch'] .nav-metrics div+div { padding: 0; border: 0; }body[data-controls='touch'] .nav-metrics small { font-size: 8px; white-space: nowrap; }body[data-controls='touch'] .nav-metrics b { font-size: 18px; }
+  body[data-controls='touch'] .speed-note { display: none; }body[data-controls='touch'] .speed-panel .eyebrow span { display: none; }
+  body[data-controls='touch'] .nav-panel, body[data-controls='touch'] .crew-panel { left: max(12px, env(safe-area-inset-left)); }body[data-controls='touch'] .speed-panel { right: max(12px, env(safe-area-inset-right)); }.map-panel { right: calc(132px + env(safe-area-inset-right)); }
+}

@@ -5,6 +5,17 @@ export const WORLD = {
   maxFrameSeconds: 0.25,
 } as const;
 
+export const DISPLAY = {
+  roadRotation: -Math.PI / 2,
+  uprightRotation: Math.PI / 2,
+  maxZoom: 1.1,
+  visibleStreetWidth: 460,
+  wheelDeadZone: 0.08,
+  wheelTravelRatio: 0.35,
+  touchLookAheadSeconds: 0.2,
+  touchCameraOffsetRatio: 0.12,
+} as const;
+
 export const SERVICE = {
   residentTravelSeconds: 1.1,
   delayGraceSeconds: 0.45,
@@ -48,7 +59,7 @@ export const STREET = {
   dockingHalfLength: 65,
   dockingHalfWidth: 15,
   dockingHeadingTolerance: 0.35,
-  startX: 250,
+  startX: 400,
   startY: 610,
 } as const;
 

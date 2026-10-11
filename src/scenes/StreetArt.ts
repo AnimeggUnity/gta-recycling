@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { STREET, TRAFFIC, WORLD } from '../config/balance';
+import { DISPLAY, STREET, TRAFFIC, WORLD } from '../config/balance';
 import { POTHOLES } from '../config/hazards';
 import { ROUTE_STATIONS } from '../config/stations';
 import { BUILDINGS, PARKED_SCOOTERS, TREES, type Building } from '../config/street';
@@ -30,7 +30,7 @@ export function drawStreetArt(scene: Phaser.Scene): void {
     g.lineStyle(2, 0xd0b875).lineBetween(left, STREET.bottom, left, STREET.bayY + STREET.bayHalfWidth);
     g.lineBetween(left, STREET.bayY + STREET.bayHalfWidth, right, STREET.bayY + STREET.bayHalfWidth);
     g.lineBetween(right, STREET.bayY + STREET.bayHalfWidth, right, STREET.bottom);
-    scene.add.text(station.stop.x, STREET.bayY + 28, '資 源 回 收 ・ 臨 停 區', { fontFamily: 'monospace', fontSize: '11px', color: '#b5ad80' }).setOrigin(0.5);
+    scene.add.text(station.stop.x, STREET.bayY + 28, '回收灣', { fontFamily: 'monospace', fontSize: '11px', color: '#b5ad80' }).setOrigin(0.5).setRotation(DISPLAY.uprightRotation);
     curbStart = right;
   }
   g.lineStyle(3, 0xc16854).lineBetween(curbStart, STREET.bottom + 1, WORLD.width, STREET.bottom + 1);
@@ -50,7 +50,7 @@ export function drawStreetArt(scene: Phaser.Scene): void {
     for (let y = STREET.top + 8; y < STREET.bottom - 8; y += 23) g.fillStyle(0xd5d8c9, 0.85).fillRect(x, y, TRAFFIC.crossingWidth, 12);
     g.fillStyle(0xd5d8c9).fillRect(x - TRAFFIC.stopLineOffset - 3, STREET.centerY + 7, 5, STREET.bottom - STREET.centerY - 12);
     g.fillRect(x + TRAFFIC.stopLineOffset, STREET.top + 5, 5, STREET.centerY - STREET.top - 12);
-    scene.add.text(x + TRAFFIC.crossingWidth / 2, 336, '行人穿越道', { fontFamily: 'monospace', fontSize: '11px', color: '#263e3c' }).setOrigin(0.5);
+    scene.add.text(x + TRAFFIC.crossingWidth / 2, 336, '行人穿越道', { fontFamily: 'monospace', fontSize: '11px', color: '#263e3c' }).setOrigin(0.5).setRotation(DISPLAY.uprightRotation);
   }
   for (const building of BUILDINGS) drawBuilding(scene, g, building);
   for (const tree of TREES) {
@@ -77,7 +77,7 @@ export function drawStreetArt(scene: Phaser.Scene): void {
     g.fillStyle(0x91b6a1).fillRect(x - 12, y - 7, 8, 14);
     scene.add.text(station.stop.x, STREET.sidewalkBottom + 9, `${String(index + 1).padStart(2, '0')}  ${station.name}`, {
       fontFamily: 'monospace', fontSize: '13px', color: '#e9dfb8', backgroundColor: '#263c3e', padding: { x: 9, y: 5 },
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setRotation(DISPLAY.uprightRotation);
   }
 }
 
@@ -98,7 +98,7 @@ function drawBuilding(scene: Phaser.Scene, g: Phaser.GameObjects.Graphics, b: Bu
   g.fillStyle(0xbed0c6).fillCircle(b.x + 52, b.y + 99, 19);
   g.fillStyle(0x8baba6).fillCircle(b.x + 52, b.y + 97, 13);
   g.fillStyle(b.sign).fillRect(b.x + 8, b.y + b.h - 36, b.w - 16, 31);
-  scene.add.text(b.x + b.w / 2, b.y + b.h - 22, b.name, { fontFamily: 'monospace', fontSize: '17px', fontStyle: 'bold', color: '#f0ead5' }).setOrigin(0.5);
+  scene.add.text(b.x + b.w / 2, b.y + b.h - 22, b.name, { fontFamily: 'monospace', fontSize: '14px', fontStyle: 'bold', color: '#f0ead5', backgroundColor: `#${b.sign.toString(16).padStart(6, '0')}`, padding: { x: 5, y: 3 } }).setOrigin(0.5).setRotation(DISPLAY.uprightRotation);
   const awningY = b.y > STREET.bottom ? b.y - 18 : b.y + b.h + 5;
   for (let x = b.x; x < b.x + b.w; x += 20) g.fillStyle(Math.floor((x - b.x) / 20) % 2 ? 0xd7cfac : b.sign).fillRect(x, awningY, 18, 14);
 }

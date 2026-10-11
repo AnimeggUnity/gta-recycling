@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { NAVIGATION, STREET, TRAFFIC, WORLD } from '../config/balance';
+import { DISPLAY, NAVIGATION, STREET, TRAFFIC, WORLD } from '../config/balance';
 import { POTHOLES } from '../config/hazards';
 import { ROAD_EDGES, ROAD_NODES } from '../config/roads';
 import { ROUTE_STATIONS } from '../config/stations';
@@ -51,8 +51,12 @@ export class GameScene extends Phaser.Scene {
   public constructor() { super('GameScene'); }
 
   public create(): void {
-    this.cameras.main.setBounds(0, 0, WORLD.width, WORLD.height);
-    this.cameras.main.setZoom(1.1);
+    // Keep route-space rules intact; rotate the entire world into a north-up display.
+    this.cameras.main.setRotation(DISPLAY.roadRotation);
+    const resizeCamera = () => this.cameras.main.setZoom(Math.min(DISPLAY.maxZoom, this.scale.width / DISPLAY.visibleStreetWidth));
+    resizeCamera();
+    this.scale.on('resize', resizeCamera);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.scale.off('resize', resizeCamera));
     drawStreetArt(this);
     this.navigationLayer = this.add.graphics();
     this.stopMarker = this.add.graphics();
@@ -112,8 +116,10 @@ export class GameScene extends Phaser.Scene {
     this.updateAttendants();
     this.updateCargoVisuals();
     this.trafficArt.update(this.traffic);
-    const lookAheadSeconds = 0.42;
-    const targetX = this.vehicle.x + this.vehicle.velocityX * lookAheadSeconds;
+    const touchMode = document.body.dataset.controls === 'touch';
+    const lookAheadSeconds = touchMode ? DISPLAY.touchLookAheadSeconds : 0.42;
+    const touchCameraOffset = touchMode ? this.scale.height * DISPLAY.touchCameraOffsetRatio / this.cameras.main.zoom : 0;
+    const targetX = this.vehicle.x + this.vehicle.velocityX * lookAheadSeconds - touchCameraOffset;
     const targetY = this.vehicle.y + this.vehicle.velocityY * lookAheadSeconds;
     const cameraBlend = 1 - Math.exp(-6 * Math.min(deltaMs / 1000, WORLD.maxFrameSeconds));
     this.cameraTarget.setPosition(
@@ -191,7 +197,7 @@ export class GameScene extends Phaser.Scene {
       drawPerson(person, colors[index]);
       const item = this.add.graphics();
       this.residentItems.push(item);
-      return this.add.container(0, 0, [person, item]).setVisible(false);
+      return this.add.container(0, 0, [person, item]).setRotation(DISPLAY.uprightRotation).setVisible(false);
     });
   }
 
@@ -283,6 +289,7 @@ export class GameScene extends Phaser.Scene {
     );
     const reaction = { calm: '', annoyed: '…', angry: '!', furious: '怒' }[this.crew.reaction];
     this.reactionText.setText(reaction).setVisible(reaction !== '');
+    this.reactionText.setRotation(DISPLAY.uprightRotation - this.vehicle.rotation);
   }
 
   private updateCargoVisuals(): void {

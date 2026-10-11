@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import type { DriverInput } from '../game/Vehicle';
 import { resolvePriorityAxis } from '../game/InputResolver';
+import { touchInput } from './TouchInputState';
 
 export class DrivingControls {
   private readonly up: Phaser.Input.Keyboard.Key;
@@ -28,10 +29,10 @@ export class DrivingControls {
   }
 
   public read(): DriverInput {
-    return {
+    return touchInput.merge({
       throttle: resolvePriorityAxis([this.down, this.s], [this.up, this.w]),
       steering: resolvePriorityAxis([this.left, this.a], [this.right, this.d]),
       brake: this.brake.isDown,
-    };
+    });
   }
 }
