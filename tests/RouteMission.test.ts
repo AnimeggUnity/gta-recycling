@@ -18,6 +18,34 @@ const station: RouteStation = {
 };
 
 describe('RouteMission', () => {
+  it('fails at exactly 100 anger, not below, and permanently freezes progress', () => {
+    const mission = new RouteMission([station], new CargoHold(), new RoadGraph([{ id: 'a', x: 100, y: 0 }], []));
+    const observation = { vehicleX: 100, vehicleY: 0, vehicleSpeed: 0, attemptingToDrive: false };
+    mission.update(observation, 99.99, 1 / 60);
+    expect(mission.ended).toBe(false);
+    const elapsed = mission.elapsedSeconds;
+    mission.checkCrewAnger(100);
+    expect(mission.failed).toBe(true);
+    expect(mission.complete).toBe(false);
+    expect(mission.ended).toBe(true);
+    expect(mission.getSettlement()).toBeUndefined();
+    expect(mission.getFailure()).toEqual({ reason: 'crew-anger', totalSeconds: elapsed, stationCount: 0 });
+    const phase = mission.activeCycle?.phase;
+    mission.update(observation, 0, 60);
+    expect(mission.elapsedSeconds).toBe(elapsed);
+    expect(mission.activeCycle?.phase).toBe(phase);
+    expect(mission.failed).toBe(true);
+    expect(mission.getNavigation({ x: 0, y: 0 }).path).toEqual([]);
+  });
+
+  it('checks anger before processing station departures', () => {
+    const mission = new RouteMission([station], new CargoHold(), new RoadGraph([], []));
+    mission.activeCycle!.phase = 'departed';
+    mission.update({ vehicleX: 150, vehicleY: 0, vehicleSpeed: 0, attemptingToDrive: true }, 101, 1 / 60);
+    expect(mission.failed).toBe(true);
+    expect(mission.results).toHaveLength(0);
+    expect(mission.complete).toBe(false);
+  });
   it('reports route distance, ETA and schedule', () => {
     const roads = new RoadGraph([{ id: 'a', x: 0, y: 0 }, { id: 'b', x: 100, y: 0 }], [{ from: 'a', to: 'b' }]);
     const mission = new RouteMission([station], new CargoHold(), roads);
@@ -42,6 +70,7 @@ describe('RouteMission', () => {
     const result = mission.getSettlement();
     mission.update({ ...stopped, vehicleX: 150 }, 100, 60);
     expect(mission.getSettlement()).toEqual(result);
+    expect(mission.failed).toBe(false);
   });
 
   it('completes the configured three-stop route with shared cargo', () => {

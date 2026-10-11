@@ -95,3 +95,4 @@ export const TRAFFIC = {
   impactReferenceSpeed: 220,
   collisionAnger: 25,
 } as const;
+export const MISSION = { angerFailureThreshold: 100 } as const;

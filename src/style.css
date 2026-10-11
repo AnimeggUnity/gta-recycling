@@ -1,4 +1,6 @@
 :root { color-scheme: dark; font-family: 'Noto Sans TC', system-ui, sans-serif; background: #15272a; color: #e6ead7; }
+body[data-mission-ended='true'] .hud, body[data-mission-ended='true'] .touch-controls, body[data-mission-ended='true'] .input-mode-toggle { display: none; }
+.settlement.mission-failed { border-top-color: #ee9279; }.settlement.mission-failed strong { color: #f4ad91; }
 .sorting-panel { position: fixed; inset: 0; z-index: 6; display: grid; place-items: center; padding: max(6px, env(safe-area-inset-top)) max(6px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left)); background: #10262bf5; user-select: none; -webkit-user-select: none; }
 .sorting-panel[hidden] { display: none; }
 .sorting-workspace { width: min(100%, 520px, calc((100dvh - 100px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) * 2 / 3)); }

@@ -3,6 +3,7 @@ import { STREET, TRAFFIC, VEHICLE, WORLD } from '../config/balance';
 import type { RoutePoint } from '../game/RoadGraph';
 import type { SignalColor } from '../game/TrafficSystem';
 import type { StationPhase } from '../game/StationCycle';
+import type { MissionFailure } from '../game/RouteMission';
 
 export class Hud {
   public readonly element: HTMLDivElement;
@@ -46,6 +47,7 @@ export class Hud {
     navigationPath: readonly RoutePoint[];
     signalColor?: SignalColor;
     signalDistance?: number;
+    failure?: MissionFailure;
     settlement?: Readonly<{
       score: number;
       totalSeconds: number;
@@ -90,9 +92,12 @@ export class Hud {
       <div class="controls-hint"><kbd>WASD</kbd> / <kbd>↑↓←→</kbd> 駕駛 <span>·</span> <kbd>SPACE</kbd> 緊急煞車</div>`;
     if (this.element.innerHTML !== markup) this.element.innerHTML = markup;
 
-    this.settlement.hidden = !data.settlement;
-    if (data.settlement) {
-      const settlementMarkup = `<div class="eyebrow">SHIFT COMPLETE / 收運報告</div><strong>辛苦了，收工！</strong><p>三站回收物已完成收運</p><div class="score"><b>${data.settlement.score}</b><span>勤務評分</span></div><div class="report-row"><span>完成時間</span><span>${this.duration(data.settlement.totalSeconds)}</span></div><div class="report-row"><span>累計延誤</span><span>${Math.round(data.settlement.totalDelaySeconds)} 秒</span></div>${mobile ? '' : `<div class="report-row"><span>最高怒氣</span><span>${Math.round(data.settlement.peakAnger)} / 100</span></div>`}<div class="report-row"><span>完成站數</span><span>${data.settlement.stationCount} / ${data.stationCount}</span></div><button type="button" id="restart-mission">重新出車 →</button>`;
+    this.settlement.hidden = !data.settlement && !data.failure;
+    this.settlement.className = `settlement${data.failure ? ' mission-failed' : ''}`;
+    if (data.settlement || data.failure) {
+      const settlementMarkup = data.failure
+        ? `<div class="eyebrow">SHIFT FAILED / 收運中止</div><strong>任務失敗</strong><p>隨車人員怒氣達到 100%，拒絕繼續收運。</p><div class="report-row"><span>出車時間</span><span>${this.duration(data.failure.totalSeconds)}</span></div><div class="report-row"><span>完成站數</span><span>${data.failure.stationCount} / ${data.stationCount}</span></div><button type="button" id="restart-mission">重新出車 →</button>`
+        : `<div class="eyebrow">SHIFT COMPLETE / 收運報告</div><strong>辛苦了，收工！</strong><p>三站回收物已完成收運</p><div class="score"><b>${data.settlement!.score}</b><span>勤務評分</span></div><div class="report-row"><span>完成時間</span><span>${this.duration(data.settlement!.totalSeconds)}</span></div><div class="report-row"><span>累計延誤</span><span>${Math.round(data.settlement!.totalDelaySeconds)} 秒</span></div>${mobile ? '' : `<div class="report-row"><span>最高怒氣</span><span>${Math.round(data.settlement!.peakAnger)} / 100</span></div>`}<div class="report-row"><span>完成站數</span><span>${data.settlement!.stationCount} / ${data.stationCount}</span></div><button type="button" id="restart-mission">重新出車 →</button>`;
       if (this.settlementMarkup !== settlementMarkup) {
         this.settlementMarkup = settlementMarkup;
         this.settlement.innerHTML = settlementMarkup;

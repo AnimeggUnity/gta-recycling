@@ -72,10 +72,13 @@ export class GameScene extends Phaser.Scene {
   }
 
   public update(_time: number, deltaMs: number): void {
-    const sortingActive = Boolean(this.mission.activeCycle?.sorting && this.mission.activeCycle.departureLocked);
-    const input = sortingActive ? { throttle: 0, steering: 0, brake: false } : this.controls.read();
+    const wasEnded = this.mission.ended;
+    const sortingActive = !this.mission.ended && Boolean(this.mission.activeCycle?.sorting && this.mission.activeCycle.departureLocked);
+    const input = sortingActive || this.mission.ended ? { throttle: 0, steering: 0, brake: false } : this.controls.read();
     const { throttle, steering } = input;
     this.clock.advance(deltaMs / 1000, (dt) => {
+      this.mission.checkCrewAnger(this.crew.anger);
+      if (this.mission.ended) { this.vehicle.park(); return; }
       for (const command of this.sortingPanel.takeCommands()) {
         if (command.queue === this.mission.activeCycle?.sorting && this.mission.activeCycle.departureLocked) {
           this.sortingPanel.feedback(command.queue.place(command.instanceId, command.target));
@@ -89,12 +92,12 @@ export class GameScene extends Phaser.Scene {
         attemptingToDrive: throttle !== 0,
         crewEfficiency: this.crew.efficiency,
       }, this.crew.anger, dt);
-      const parked = Boolean(this.mission.activeCycle?.departureLocked) || this.mission.complete;
+      const parked = Boolean(this.mission.activeCycle?.departureLocked) || this.mission.ended;
       if (parked) this.vehicle.park();
       else this.vehicle.update({ throttle, steering, brake: input.brake }, dt);
       this.collisionWarningSeconds = Math.max(0, this.collisionWarningSeconds - dt);
       let collisionImpact = 0;
-      if (!this.mission.complete) this.traffic.update(dt, truckBody(this.vehicle));
+      if (!this.mission.ended) this.traffic.update(dt, truckBody(this.vehicle));
       if (!parked) {
         const collision = this.collisions.resolve(this.vehicle, this.traffic.getObstacles());
         this.traffic.stopContacts(collision.contacts);
@@ -107,11 +110,13 @@ export class GameScene extends Phaser.Scene {
       }
       const impact = this.potholes.update(this.vehicle.x, this.vehicle.y, this.vehicle.speed);
       this.pendingImpact = Math.max(this.pendingImpact, impact);
-      if (!this.mission.complete) this.crew.update(this.vehicle.telemetry, impact, dt, {
+      if (!this.mission.ended) this.crew.update(this.vehicle.telemetry, impact, dt, {
         steeringInput: steering,
         residentDelaySeconds: this.mission.activeCycle?.residentDelaySeconds ?? 0,
         collisionImpact,
       });
+      this.mission.checkCrewAnger(this.crew.anger);
+      if (this.mission.ended) this.vehicle.park();
     });
     const bounceScale = 1 + this.crew.bounce * 0.025;
     this.truck.setPosition(this.vehicle.x, this.vehicle.y).setRotation(this.vehicle.rotation).setScale(bounceScale);
@@ -137,10 +142,12 @@ export class GameScene extends Phaser.Scene {
     );
     const activeStation = this.mission.activeStation;
     const activeCycle = this.mission.activeCycle;
-    if (sortingActive !== Boolean(activeCycle?.sorting && activeCycle.departureLocked)) this.controls.reset();
-    this.sortingPanel.update(activeCycle);
+    if (sortingActive !== (!this.mission.ended && Boolean(activeCycle?.sorting && activeCycle.departureLocked)) || wasEnded !== this.mission.ended) this.controls.reset();
+    document.body.dataset.missionEnded = String(this.mission.ended);
+    this.sortingPanel.update(this.mission.ended ? undefined : activeCycle);
     // DOM panels refresh at 10Hz; world rendering and fixed-step rules stay unchanged.
     this.hudElapsedMs += deltaMs;
+    if (wasEnded !== this.mission.ended) this.hudElapsedMs = 100;
     if (this.hudElapsedMs < 100) return;
     this.hudElapsedMs %= 100;
     const nextSignal = this.traffic.nextSignal(this.vehicle.x);
@@ -150,7 +157,7 @@ export class GameScene extends Phaser.Scene {
       speed: this.vehicle.speed,
       lateralSpeed: this.vehicle.telemetry.lateralSpeed,
       distanceMeters: navigation.remainingMeters,
-      status: this.collisionWarningSeconds > 0 ? this.collisionLabel : activeCycle?.getStatusText() ?? '✓ 三站路線全部完成',
+      status: this.mission.failed ? '怒氣達到 100%，任務失敗' : this.collisionWarningSeconds > 0 ? this.collisionLabel : activeCycle?.getStatusText() ?? '✓ 三站路線全部完成',
       servicePhase: activeCycle?.phase,
       urgentWarning: this.collisionWarningSeconds > 0,
       cargoVolume: this.cargo.volume,
@@ -168,6 +175,7 @@ export class GameScene extends Phaser.Scene {
       scheduledTime: navigation.scheduledTime,
       delaySeconds: navigation.delaySeconds,
       settlement: this.mission.getSettlement(),
+      failure: this.mission.getFailure(),
       vehicleX: this.vehicle.x,
       vehicleY: this.vehicle.y,
       vehicleRotation: this.vehicle.rotation,

@@ -28,6 +28,18 @@ function mountHud(device = 'desktop') {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('HUD presentation', () => {
+  it.each(['desktop', 'mobile'])('shows a failure report and restart on %s without success score', (device) => {
+    const { hud, nodes, restart } = mountHud(device);
+    const failed = { ...data, failure: { reason: 'crew-anger' as const, totalSeconds: 50, stationCount: 1 } };
+    hud.update(failed); hud.update(failed);
+    expect(nodes[1].hidden).toBe(false);
+    expect(nodes[1].innerHTML).toContain('任務失敗');
+    expect(nodes[1].innerHTML).toContain('怒氣達到 100%');
+    expect(nodes[1].innerHTML).toContain('重新出車');
+    expect(nodes[1].innerHTML).not.toContain('勤務評分');
+    expect(nodes[1].className).toContain('mission-failed');
+    expect(restart).toHaveBeenCalledTimes(1);
+  });
   it('renders only speed while driving on a mobile device, even with keyboard controls', () => {
     const { hud } = mountHud('mobile');
     hud.update({ ...data, servicePhase: 'approaching' });

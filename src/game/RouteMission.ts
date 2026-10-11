@@ -3,7 +3,7 @@ import { CargoHold } from './CargoHold';
 import type { RoadGraph, RoutePoint } from './RoadGraph';
 import type { StationObservation, StationDefinition } from './StationCycle';
 import { StationCycle } from './StationCycle';
-import { NAVIGATION, VEHICLE } from '../config/balance';
+import { MISSION, NAVIGATION, VEHICLE } from '../config/balance';
 
 export type RouteStation = Readonly<{
   id: string;
@@ -42,12 +42,15 @@ export type MissionSettlement = Readonly<{
   stationCount: number;
 }>;
 
+export type MissionFailure = Readonly<{ reason: 'crew-anger'; totalSeconds: number; stationCount: number }>;
+
 export class RouteMission {
   public elapsedSeconds = 0;
   public currentStationIndex = 0;
   public activeCycle: StationCycle | undefined;
   public readonly results: StationResult[] = [];
   public peakAnger = 0;
+  public failed = false;
 
   private arrivalSeconds: number | undefined;
 
@@ -67,8 +70,22 @@ export class RouteMission {
     return this.currentStationIndex >= this.stations.length;
   }
 
+  public get ended(): boolean { return this.failed || this.complete; }
+
+  // Called both before work and immediately after this fixed step's crew dynamics.
+  public checkCrewAnger(anger: number): void {
+    if (this.ended) return;
+    this.peakAnger = Math.max(this.peakAnger, anger);
+    if (anger >= MISSION.angerFailureThreshold) this.failed = true;
+  }
+
+  public getFailure(): MissionFailure | undefined {
+    return this.failed ? { reason: 'crew-anger', totalSeconds: this.elapsedSeconds, stationCount: this.results.length } : undefined;
+  }
+
   public update(observation: StationObservation, crewAnger: number, dt: number): void {
-    if (this.complete) return;
+    this.checkCrewAnger(crewAnger);
+    if (this.ended) return;
     this.elapsedSeconds += dt;
     this.peakAnger = Math.max(this.peakAnger, crewAnger);
     const cycle = this.activeCycle;
@@ -96,7 +113,7 @@ export class RouteMission {
 
   public getNavigation(position: RoutePoint): NavigationSnapshot {
     const station = this.activeStation;
-    if (!station) return { path: [], remainingMeters: 0, etaSeconds: 0, scheduledTime: '—', delaySeconds: 0 };
+    if (this.ended || !station) return { path: [], remainingMeters: 0, etaSeconds: 0, scheduledTime: '—', delaySeconds: 0 };
     const path = this.roads.findPath(position, station.stop);
     const distance = this.roads.pathDistance(path);
     const arrived = this.arrivalSeconds !== undefined;
