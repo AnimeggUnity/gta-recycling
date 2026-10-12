@@ -4,7 +4,14 @@ export class IntroPanel {
   private hasStarted = false;
   public get started(): boolean { return this.hasStarted; }
 
-  public constructor(onStart: () => void) {
+  public constructor(onStart: () => void, skip = false) {
+    if (skip) {
+      this.hasStarted = true;
+      this.element.hidden = true;
+      document.body.dataset.intro = 'false';
+      onStart();
+      return;
+    }
     this.element.className = 'intro-panel';
     this.element.tabIndex = 0;
     this.element.setAttribute('role', 'dialog');

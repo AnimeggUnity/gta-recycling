@@ -1,17 +1,26 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { IntroPanel } from '../src/ui/IntroPanel';
 
-function mount(device = 'desktop') {
+function mount(device = 'desktop', skip = false) {
   const listeners = new Map<string, (event: any) => void>();
   const element = { className: '', innerHTML: '', hidden: false, tabIndex: -1, setAttribute: vi.fn(), focus: vi.fn(), blur: vi.fn(), addEventListener: (name: string, fn: (event: any) => void) => listeners.set(name, fn) };
   const body = { dataset: { device, intro: '' }, append: vi.fn() };
   vi.stubGlobal('document', { createElement: () => element, body });
-  const onStart = vi.fn(); const panel = new IntroPanel(onStart);
+  const onStart = vi.fn(); const panel = new IntroPanel(onStart, skip);
   const event = { preventDefault: vi.fn(), stopPropagation: vi.fn() };
   return { panel, element, body, onStart, listeners, event };
 }
 afterEach(() => vi.unstubAllGlobals());
 describe('opening rules', () => {
+  it('starts a failure retry immediately without mounting or focusing the rules card', () => {
+    const { panel, element, body, onStart } = mount('mobile', true);
+    expect(panel.started).toBe(true);
+    expect(element.hidden).toBe(true);
+    expect(body.append).not.toHaveBeenCalled();
+    expect(element.focus).not.toHaveBeenCalled();
+    expect(body.dataset.intro).toBe('false');
+    expect(onStart).toHaveBeenCalledTimes(1);
+  });
   it('waits for a click and starts exactly once, consuming the start gesture', () => {
     const { panel, element, body, onStart, listeners, event } = mount();
     expect(panel.started).toBe(false);

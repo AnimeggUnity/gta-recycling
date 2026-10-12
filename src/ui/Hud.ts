@@ -6,6 +6,7 @@ import type { StationPhase } from '../game/StationCycle';
 import type { MissionFailure } from '../game/RouteMission';
 import policeArt from '../../assets/failure/police-v1.png?url';
 import angryWorkerArt from '../../assets/failure/angry-worker-v1.png?url';
+import { restartMission } from './RestartPolicy';
 
 export class Hud {
   public readonly element: HTMLDivElement;
@@ -103,7 +104,7 @@ export class Hud {
       if (this.settlementMarkup !== settlementMarkup) {
         this.settlementMarkup = settlementMarkup;
         this.settlement.innerHTML = settlementMarkup;
-        this.settlement.querySelector('button')?.addEventListener('click', () => window.location.reload());
+        this.settlement.querySelector('button')?.addEventListener('click', () => restartMission(Boolean(data.failure)));
       }
     }
   }
