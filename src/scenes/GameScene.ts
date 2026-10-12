@@ -16,6 +16,7 @@ import { Vehicle } from '../game/Vehicle';
 import { DrivingControls } from '../ui/DrivingControls';
 import { Hud } from '../ui/Hud';
 import { SortingPanel } from '../ui/SortingPanel';
+import { IntroPanel } from '../ui/IntroPanel';
 import { drawStreetArt } from './StreetArt';
 import { drawCrewExpression, drawPerson, drawTruckBody } from './TruckArt';
 import { TrafficArt } from './TrafficArt';
@@ -50,6 +51,7 @@ export class GameScene extends Phaser.Scene {
   private hud = new Hud();
   private sortingPanel = new SortingPanel();
   private hudElapsedMs = 100;
+  private intro!: IntroPanel;
 
   public constructor() { super('GameScene'); }
 
@@ -69,9 +71,18 @@ export class GameScene extends Phaser.Scene {
     this.cameraTarget = this.add.zone(this.vehicle.x, this.vehicle.y, 1, 1);
     this.controls = new DrivingControls(this.input.keyboard!);
     this.cameras.main.startFollow(this.cameraTarget, true, 0.12, 0.12);
+    this.updateStationVisuals();
+    this.updateAttendants();
+    this.updateCargoVisuals();
+    this.trafficArt.update(this.traffic);
+    this.intro = new IntroPanel(() => {
+      this.controls.reset();
+      window.dispatchEvent(new Event('gta-input-reset'));
+    });
   }
 
   public update(_time: number, deltaMs: number): void {
+    if (!this.intro.started) return;
     const wasEnded = this.mission.ended;
     const sortingActive = !this.mission.ended && Boolean(this.mission.activeCycle?.sorting && this.mission.activeCycle.departureLocked);
     const input = sortingActive || this.mission.ended ? { throttle: 0, steering: 0, brake: false } : this.controls.read();
