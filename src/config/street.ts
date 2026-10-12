@@ -29,8 +29,8 @@ export const SIGNAL_POLES = TRAFFIC.signalXs.flatMap((x, index) => [
 ]);
 
 export const STATIC_OBSTACLES: readonly CollisionObstacle[] = [
-  ...BUILDINGS.map((b) => ({ id: b.id, label: '建築物', x: b.x + b.w / 2, y: b.y + b.h / 2, halfLength: b.w / 2, halfWidth: b.h / 2, rotation: 0 })),
+  ...BUILDINGS.map((b) => ({ id: b.id, label: '建築物', kind: 'building' as const, x: b.x + b.w / 2, y: b.y + b.h / 2, halfLength: b.w / 2, halfWidth: b.h / 2, rotation: 0 })),
   ...TREES.map((tree) => ({ ...tree, label: '路樹', halfLength: 13, halfWidth: 13, rotation: 0 })),
-  ...PARKED_SCOOTERS.map((scooter) => ({ ...scooter, label: '停放機車', halfLength: 10, halfWidth: 18, rotation: 0 })),
+  ...PARKED_SCOOTERS.map((scooter) => ({ ...scooter, label: '停放機車', kind: 'vehicle' as const, halfLength: 10, halfWidth: 18, rotation: 0 })),
   ...SIGNAL_POLES.map((pole) => ({ ...pole, label: '號誌桿', halfLength: 6, halfWidth: 6, rotation: 0 })),
 ];

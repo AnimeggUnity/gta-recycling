@@ -42,7 +42,7 @@ export type MissionSettlement = Readonly<{
   stationCount: number;
 }>;
 
-export type MissionFailure = Readonly<{ reason: 'crew-anger'; totalSeconds: number; stationCount: number }>;
+export type MissionFailure = Readonly<{ reason: 'crew-anger' | 'collision'; collisionLabel?: string; totalSeconds: number; stationCount: number }>;
 
 export class RouteMission {
   public elapsedSeconds = 0;
@@ -51,6 +51,8 @@ export class RouteMission {
   public readonly results: StationResult[] = [];
   public peakAnger = 0;
   public failed = false;
+  private failureReason: MissionFailure['reason'] = 'crew-anger';
+  private collisionLabel?: string;
 
   private arrivalSeconds: number | undefined;
 
@@ -76,11 +78,18 @@ export class RouteMission {
   public checkCrewAnger(anger: number): void {
     if (this.ended) return;
     this.peakAnger = Math.max(this.peakAnger, anger);
-    if (anger >= MISSION.angerFailureThreshold) this.failed = true;
+    if (anger >= MISSION.angerFailureThreshold) this.fail('crew-anger');
+  }
+
+  public fail(reason: MissionFailure['reason'], collisionLabel?: string): void {
+    if (this.ended) return;
+    this.failed = true;
+    this.failureReason = reason;
+    this.collisionLabel = collisionLabel;
   }
 
   public getFailure(): MissionFailure | undefined {
-    return this.failed ? { reason: 'crew-anger', totalSeconds: this.elapsedSeconds, stationCount: this.results.length } : undefined;
+    return this.failed ? { reason: this.failureReason, ...(this.collisionLabel ? { collisionLabel: this.collisionLabel } : {}), totalSeconds: this.elapsedSeconds, stationCount: this.results.length } : undefined;
   }
 
   public update(observation: StationObservation, crewAnger: number, dt: number): void {

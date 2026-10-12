@@ -46,7 +46,7 @@ export class TrafficSystem {
 
   public getObstacles(): readonly CollisionObstacle[] {
     return this.vehicles.map((vehicle) => ({ ...trafficBody(vehicle), id: vehicle.id,
-      label: vehicle.kind === 'car' ? '汽車' : '機車', velocityX: vehicle.speed * vehicle.direction, velocityY: 0 }));
+      kind: 'vehicle', label: vehicle.kind === 'car' ? '汽車' : '機車', velocityX: vehicle.speed * vehicle.direction, velocityY: 0 }));
   }
 
   public stopContacts(ids: readonly string[]): void {

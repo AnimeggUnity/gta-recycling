@@ -18,6 +18,14 @@ const station: RouteStation = {
 };
 
 describe('RouteMission', () => {
+  it('preserves a collision failure and its cause even if anger later reaches 100', () => {
+    const mission = new RouteMission([station], new CargoHold(), new RoadGraph([], []));
+    mission.fail('collision', '汽車');
+    mission.checkCrewAnger(100);
+    mission.fail('crew-anger');
+    expect(mission.getFailure()).toEqual({ reason: 'collision', collisionLabel: '汽車', totalSeconds: 0, stationCount: 0 });
+    expect(mission.getSettlement()).toBeUndefined();
+  });
   it('fails at exactly 100 anger, not below, and permanently freezes progress', () => {
     const mission = new RouteMission([station], new CargoHold(), new RoadGraph([{ id: 'a', x: 100, y: 0 }], []));
     const observation = { vehicleX: 100, vehicleY: 0, vehicleSpeed: 0, attemptingToDrive: false };

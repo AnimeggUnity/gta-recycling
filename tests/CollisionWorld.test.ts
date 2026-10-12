@@ -7,6 +7,19 @@ import { ROUTE_STATIONS } from '../src/config/stations';
 const box: CollisionBody = { x: 0, y: 0, halfLength: 30, halfWidth: 10, rotation: 0 };
 
 describe('oriented collisions', () => {
+  it.each(['vehicle', 'building'] as const)('reports %s contact as fatal even when stationary or barely scraping', (kind) => {
+    const vehicle = new Vehicle();
+    const obstacle = { ...truckBody(vehicle), id: 'fatal', label: kind === 'vehicle' ? '機車' : '建築物', kind };
+    const result = new CollisionWorld(kind === 'building' ? [obstacle] : []).resolve(vehicle, kind === 'vehicle' ? [obstacle] : []);
+    expect(result.impactSpeed).toBe(0);
+    expect(result.fatalContact).toEqual(obstacle);
+  });
+  it('does not classify trees or signal poles as vehicle/building failures', () => {
+    const vehicle = new Vehicle();
+    const result = new CollisionWorld([{ ...truckBody(vehicle), id: 'tree', label: '路樹' }]).resolve(vehicle, []);
+    expect(result.contacts).toContain('tree');
+    expect(result.fatalContact).toBeUndefined();
+  });
   it('distinguishes separated, touching and rotated overlapping rectangles', () => {
     expect(intersectBodies(box, { ...box, x: 61 })).toBeUndefined();
     expect(intersectBodies(box, { ...box, x: 60 })).toBeUndefined();

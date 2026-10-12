@@ -98,9 +98,13 @@ export class GameScene extends Phaser.Scene {
       this.collisionWarningSeconds = Math.max(0, this.collisionWarningSeconds - dt);
       let collisionImpact = 0;
       if (!this.mission.ended) this.traffic.update(dt, truckBody(this.vehicle));
-      if (!parked) {
+      if (!this.mission.ended) {
         const collision = this.collisions.resolve(this.vehicle, this.traffic.getObstacles());
         this.traffic.stopContacts(collision.contacts);
+        if (collision.fatalContact) {
+          this.mission.fail('collision', collision.fatalContact.label);
+          this.vehicle.park();
+        }
         if (collision.impactSpeed > TRAFFIC.minimumImpactSpeed) {
           collisionImpact = Math.min(1, collision.impactSpeed / TRAFFIC.impactReferenceSpeed);
           this.collisionLabel = `碰撞：${collision.label}，請減速並保持車距`;
@@ -157,7 +161,7 @@ export class GameScene extends Phaser.Scene {
       speed: this.vehicle.speed,
       lateralSpeed: this.vehicle.telemetry.lateralSpeed,
       distanceMeters: navigation.remainingMeters,
-      status: this.mission.failed ? '怒氣達到 100%，任務失敗' : this.collisionWarningSeconds > 0 ? this.collisionLabel : activeCycle?.getStatusText() ?? '✓ 三站路線全部完成',
+      status: this.mission.failed ? '任務失敗，收運中止' : this.collisionWarningSeconds > 0 ? this.collisionLabel : activeCycle?.getStatusText() ?? '✓ 三站路線全部完成',
       servicePhase: activeCycle?.phase,
       urgentWarning: this.collisionWarningSeconds > 0,
       cargoVolume: this.cargo.volume,

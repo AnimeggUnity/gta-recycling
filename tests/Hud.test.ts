@@ -28,6 +28,14 @@ function mountHud(device = 'desktop') {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('HUD presentation', () => {
+  it('uses the police illustration and traffic accident message for collisions', () => {
+    const { hud, nodes } = mountHud();
+    hud.update({ ...data, failure: { reason: 'collision', collisionLabel: '機車', totalSeconds: 5, stationCount: 0 } });
+    expect(nodes[1].className).toContain('collision-failed');
+    expect(nodes[1].innerHTML).toContain('police-v1.png');
+    expect(nodes[1].innerHTML).toContain('撞到機車');
+    expect(nodes[1].innerHTML).not.toContain('angry-worker-v1.png');
+  });
   it.each(['desktop', 'mobile'])('shows a failure report and restart on %s without success score', (device) => {
     const { hud, nodes, restart } = mountHud(device);
     const failed = { ...data, failure: { reason: 'crew-anger' as const, totalSeconds: 50, stationCount: 1 } };
@@ -38,6 +46,7 @@ describe('HUD presentation', () => {
     expect(nodes[1].innerHTML).toContain('重新出車');
     expect(nodes[1].innerHTML).not.toContain('勤務評分');
     expect(nodes[1].className).toContain('mission-failed');
+    expect(nodes[1].innerHTML).toContain('angry-worker-v1.png');
     expect(restart).toHaveBeenCalledTimes(1);
   });
   it('renders only speed while driving on a mobile device, even with keyboard controls', () => {

@@ -2,7 +2,7 @@ import { TRAFFIC } from '../config/balance';
 import type { Vehicle } from './Vehicle';
 
 export type CollisionBody = Readonly<{ x: number; y: number; rotation: number; halfLength: number; halfWidth: number }>;
-export type CollisionObstacle = CollisionBody & Readonly<{ id: string; label: string; velocityX?: number; velocityY?: number }>;
+export type CollisionObstacle = CollisionBody & Readonly<{ id: string; label: string; kind?: 'vehicle' | 'building'; velocityX?: number; velocityY?: number }>;
 export type Contact = Readonly<{ normalX: number; normalY: number; depth: number }>;
 
 /** Separating-axis test for rotated rectangles; normal points from B to A. */
@@ -42,9 +42,10 @@ export function truckBody(vehicle: Pick<Vehicle, 'x' | 'y' | 'rotation'>): Colli
 export class CollisionWorld {
   public constructor(public readonly obstacles: readonly CollisionObstacle[]) {}
 
-  public resolve(vehicle: Vehicle, moving: readonly CollisionObstacle[]): { impactSpeed: number; contacts: readonly string[]; label: string } {
+  public resolve(vehicle: Vehicle, moving: readonly CollisionObstacle[]): { impactSpeed: number; contacts: readonly string[]; label: string; fatalContact?: CollisionObstacle } {
     let impactSpeed = 0;
     let label = '';
+    let fatalContact: CollisionObstacle | undefined;
     const contacts = new Set<string>();
     const candidates = [...this.obstacles, ...moving].filter((obstacle) => Math.abs(obstacle.x - vehicle.x) < obstacle.halfLength + obstacle.halfWidth + 160);
     for (let pass = 0; pass < TRAFFIC.collisionIterations; pass += 1) {
@@ -54,6 +55,7 @@ export class CollisionWorld {
         if (!contact) continue;
         changed = true;
         contacts.add(obstacle.id);
+        if (!fatalContact && (obstacle.kind === 'vehicle' || obstacle.kind === 'building')) fatalContact = obstacle;
         const closing = -((vehicle.velocityX - (obstacle.velocityX ?? 0)) * contact.normalX + (vehicle.velocityY - (obstacle.velocityY ?? 0)) * contact.normalY);
         if (closing > impactSpeed) { impactSpeed = closing; label = obstacle.label; }
         vehicle.x += contact.normalX * (contact.depth + TRAFFIC.collisionSkin);
@@ -72,6 +74,6 @@ export class CollisionWorld {
         longitudinalSpeed: vehicle.velocityX * cos + vehicle.velocityY * sin,
         lateralSpeed: -vehicle.velocityX * sin + vehicle.velocityY * cos };
     }
-    return { impactSpeed, contacts: [...contacts], label };
+    return { impactSpeed, contacts: [...contacts], label, fatalContact };
   }
 }

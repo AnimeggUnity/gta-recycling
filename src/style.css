@@ -1,6 +1,14 @@
 :root { color-scheme: dark; font-family: 'Noto Sans TC', system-ui, sans-serif; background: #15272a; color: #e6ead7; }
 body[data-mission-ended='true'] .hud, body[data-mission-ended='true'] .touch-controls, body[data-mission-ended='true'] .input-mode-toggle { display: none; }
-.settlement.mission-failed { border-top-color: #ee9279; }.settlement.mission-failed strong { color: #f4ad91; }
+.settlement.mission-failed { width: min(860px, calc(100vw - 32px)); padding: 30px 28px 30px 46%; border-top: 4px solid #ee9279; background: linear-gradient(115deg, #304e60 0%, #193235 48%, #10262b 100%); overflow: visible; }
+.settlement.mission-failed strong { color: #f4ad91; font-size: clamp(24px, 4vw, 48px); margin-top: 12px; }
+.settlement.mission-failed { padding-left: min(390px, 44vw); }
+.settlement.anger-failed { background: linear-gradient(115deg, #5a4730, #253c36 48%, #10262b); }
+.failure-illustration { position: absolute; left: -7%; top: -12%; width: 50%; height: 124%; object-fit: contain; image-rendering: pixelated; pointer-events: none; filter: drop-shadow(8px 12px 0 #06191c80); animation: failure-burst 450ms ease-out both; }
+.failure-message { position: relative; z-index: 1; }.failure-cause { color: #ecd19c; font-size: 17px; font-weight: 800; margin-top: 8px; }
+@keyframes failure-burst { from { transform: translate(12%, -5%) scale(.75); opacity: 0; } to { transform: none; opacity: 1; } }
+@media(max-width: 600px) { .settlement.mission-failed { width: calc(100vw - 24px); padding: 20px 14px 20px 43%; }.settlement.mission-failed .eyebrow { font-size: 8px; letter-spacing: 0; }.settlement.mission-failed strong { font-size: 25px; margin-top: 9px; }.settlement.mission-failed p { font-size: 11px; line-height: 1.6; }.settlement.mission-failed .report-row { font-size: 11px; padding: 7px 0; }.settlement.mission-failed button { font-size: 12px; margin-top: 16px; padding: 10px 4px; }.failure-cause { font-size: 13px; }.failure-illustration { left: -4%; width: 45%; top: -10%; height: 120%; } }
+@media(prefers-reduced-motion: reduce) { .failure-illustration { animation: none; } }
 .sorting-panel { position: fixed; inset: 0; z-index: 6; display: grid; place-items: center; padding: max(6px, env(safe-area-inset-top)) max(6px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left)); background: #10262bf5; user-select: none; -webkit-user-select: none; }
 .sorting-panel[hidden] { display: none; }
 .sorting-workspace { width: min(100%, 520px, calc((100dvh - 100px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) * 2 / 3)); }
