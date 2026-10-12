@@ -1,0 +1,261 @@
+{
+  "generator": "sharp 0.35.5",
+  "entries": [
+    {
+      "source": "assets/recycling/samples-v1/crumpled-paper/01-round-ball.png",
+      "output": "assets/optimized/recycling/crumpled-paper/01-round-ball.webp",
+      "width": 256,
+      "height": 256,
+      "originalBytes": 616464,
+      "optimizedBytes": 29452,
+      "lossless": true
+    },
+    {
+      "source": "assets/recycling/samples-v1/crumpled-paper/02-pointed-wad.png",
+      "output": "assets/optimized/recycling/crumpled-paper/02-pointed-wad.webp",
+      "width": 256,
+      "height": 256,
+      "originalBytes": 546609,
+      "optimizedBytes": 27358,
+      "lossless": true
+    },
+    {
+      "source": "assets/recycling/samples-v1/crumpled-paper/03-flattened-star.png",
+      "output": "assets/optimized/recycling/crumpled-paper/03-flattened-star.webp",
+      "width": 256,
+      "height": 256,
+      "originalBytes": 615591,
+      "optimizedBytes": 31216,
+      "lossless": true
+    },
+    {
+      "source": "assets/recycling/samples-v1/crumpled-paper/04-loose-folded.png",
+      "output": "assets/optimized/recycling/crumpled-paper/04-loose-folded.webp",
+      "width": 256,
+      "height": 256,
+      "originalBytes": 615386,
+      "optimizedBytes": 30556,
+      "lossless": true
+    },
+    {
+      "source": "assets/recycling/samples-v1/crumpled-paper/05-elongated-twist.png",
+      "output": "assets/optimized/recycling/crumpled-paper/05-elongated-twist.webp",
+      "width": 256,
+      "height": 256,
+      "originalBytes": 435758,
+      "optimizedBytes": 22078,
+      "lossless": true
+    },
+    {
+      "source": "assets/recycling/samples-v1/metal-can/01-standard-soda.png",
+      "output": "assets/optimized/recycling/metal-can/01-standard-soda.webp",
+      "width": 256,
+      "height": 256,
+      "originalBytes": 680257,
+      "optimizedBytes": 29170,
+      "lossless": true
+    },
+    {
+      "source": "assets/recycling/samples-v1/metal-can/02-tall-slim.png",
+      "output": "assets/optimized/recycling/metal-can/02-tall-slim.webp",
+      "width": 256,
+      "height": 256,
+      "originalBytes": 469097,
+      "optimizedBytes": 18732,
+      "lossless": true
+    },
+    {
+      "source": "assets/recycling/samples-v1/metal-can/03-short-wide.png",
+      "output": "assets/optimized/recycling/metal-can/03-short-wide.webp",
+      "width": 256,
+      "height": 256,
+      "originalBytes": 670281,
+      "optimizedBytes": 30072,
+      "lossless": true
+    },
+    {
+      "source": "assets/recycling/samples-v1/metal-can/04-ribbed-food.png",
+      "output": "assets/optimized/recycling/metal-can/04-ribbed-food.webp",
+      "width": 256,
+      "height": 256,
+      "originalBytes": 643738,
+      "optimizedBytes": 31136,
+      "lossless": true
+    },
+    {
+      "source": "assets/recycling/samples-v1/metal-can/05-crushed-flat.png",
+      "output": "assets/optimized/recycling/metal-can/05-crushed-flat.webp",
+      "width": 256,
+      "height": 256,
+      "originalBytes": 569110,
+      "optimizedBytes": 29598,
+      "lossless": true
+    },
+    {
+      "source": "assets/recycling/samples-v1/paper-meal-box/01-rectangular-clamshell.png",
+      "output": "assets/optimized/recycling/paper-meal-box/01-rectangular-clamshell.webp",
+      "width": 256,
+      "height": 256,
+      "originalBytes": 756072,
+      "optimizedBytes": 35634,
+      "lossless": true
+    },
+    {
+      "source": "assets/recycling/samples-v1/paper-meal-box/02-square-folded.png",
+      "output": "assets/optimized/recycling/paper-meal-box/02-square-folded.webp",
+      "width": 256,
+      "height": 256,
+      "originalBytes": 594201,
+      "optimizedBytes": 25174,
+      "lossless": true
+    },
+    {
+      "source": "assets/recycling/samples-v1/paper-meal-box/03-round-bowl.png",
+      "output": "assets/optimized/recycling/paper-meal-box/03-round-bowl.webp",
+      "width": 256,
+      "height": 256,
+      "originalBytes": 771654,
+      "optimizedBytes": 33168,
+      "lossless": true
+    },
+    {
+      "source": "assets/recycling/samples-v1/paper-meal-box/04-oval-tray.png",
+      "output": "assets/optimized/recycling/paper-meal-box/04-oval-tray.webp",
+      "width": 171,
+      "height": 256,
+      "originalBytes": 1105379,
+      "optimizedBytes": 25426,
+      "lossless": true
+    },
+    {
+      "source": "assets/recycling/samples-v1/paper-meal-box/05-trapezoid-box.png",
+      "output": "assets/optimized/recycling/paper-meal-box/05-trapezoid-box.webp",
+      "width": 256,
+      "height": 256,
+      "originalBytes": 708529,
+      "optimizedBytes": 28126,
+      "lossless": true
+    },
+    {
+      "source": "assets/recycling/samples-v1/pet-bottle/01-tall-ribbed.png",
+      "output": "assets/optimized/recycling/pet-bottle/01-tall-ribbed.webp",
+      "width": 256,
+      "height": 256,
+      "originalBytes": 471399,
+      "optimizedBytes": 23398,
+      "lossless": true
+    },
+    {
+      "source": "assets/recycling/samples-v1/pet-bottle/02-short-wide.png",
+      "output": "assets/optimized/recycling/pet-bottle/02-short-wide.webp",
+      "width": 256,
+      "height": 256,
+      "originalBytes": 594085,
+      "optimizedBytes": 28032,
+      "lossless": true
+    },
+    {
+      "source": "assets/recycling/samples-v1/pet-bottle/03-square-body.png",
+      "output": "assets/optimized/recycling/pet-bottle/03-square-body.webp",
+      "width": 256,
+      "height": 256,
+      "originalBytes": 489163,
+      "optimizedBytes": 23096,
+      "lossless": true
+    },
+    {
+      "source": "assets/recycling/samples-v1/pet-bottle/04-waisted-sport.png",
+      "output": "assets/optimized/recycling/pet-bottle/04-waisted-sport.webp",
+      "width": 256,
+      "height": 256,
+      "originalBytes": 495398,
+      "optimizedBytes": 24122,
+      "lossless": true
+    },
+    {
+      "source": "assets/recycling/samples-v1/pet-bottle/05-crushed-bent.png",
+      "output": "assets/optimized/recycling/pet-bottle/05-crushed-bent.webp",
+      "width": 256,
+      "height": 256,
+      "originalBytes": 525443,
+      "optimizedBytes": 26928,
+      "lossless": true
+    },
+    {
+      "source": "assets/recycling/samples-v1/used-tissue/01-soft-wad.png",
+      "output": "assets/optimized/recycling/used-tissue/01-soft-wad.webp",
+      "width": 256,
+      "height": 256,
+      "originalBytes": 562552,
+      "optimizedBytes": 26514,
+      "lossless": true
+    },
+    {
+      "source": "assets/recycling/samples-v1/used-tissue/02-folded-napkin.png",
+      "output": "assets/optimized/recycling/used-tissue/02-folded-napkin.webp",
+      "width": 256,
+      "height": 256,
+      "originalBytes": 667421,
+      "optimizedBytes": 30938,
+      "lossless": true
+    },
+    {
+      "source": "assets/recycling/samples-v1/used-tissue/03-damp-flat.png",
+      "output": "assets/optimized/recycling/used-tissue/03-damp-flat.webp",
+      "width": 256,
+      "height": 256,
+      "originalBytes": 602617,
+      "optimizedBytes": 29140,
+      "lossless": true
+    },
+    {
+      "source": "assets/recycling/samples-v1/used-tissue/04-torn-strip.png",
+      "output": "assets/optimized/recycling/used-tissue/04-torn-strip.webp",
+      "width": 256,
+      "height": 256,
+      "originalBytes": 383489,
+      "optimizedBytes": 18596,
+      "lossless": true
+    },
+    {
+      "source": "assets/recycling/samples-v1/used-tissue/05-open-fan.png",
+      "output": "assets/optimized/recycling/used-tissue/05-open-fan.webp",
+      "width": 256,
+      "height": 256,
+      "originalBytes": 523010,
+      "optimizedBytes": 24306,
+      "lossless": true
+    },
+    {
+      "source": "assets/recycling/backgrounds/truck-bed-sorting-v1.png",
+      "output": "assets/optimized/backgrounds/truck-bed-sorting-v1.webp",
+      "width": 768,
+      "height": 1152,
+      "originalBytes": 2698772,
+      "optimizedBytes": 268470,
+      "lossless": false
+    },
+    {
+      "source": "assets/failure/police-v1.png",
+      "output": "assets/optimized/failure/police-v1.webp",
+      "width": 512,
+      "height": 512,
+      "originalBytes": 1388888,
+      "optimizedBytes": 226826,
+      "lossless": true
+    },
+    {
+      "source": "assets/failure/angry-worker-v1.png",
+      "output": "assets/optimized/failure/angry-worker-v1.webp",
+      "width": 512,
+      "height": 512,
+      "originalBytes": 1580304,
+      "optimizedBytes": 270830,
+      "lossless": true
+    }
+  ],
+  "totals": {
+    "originalBytes": 20780667,
+    "optimizedBytes": 1448092
+  }
+}

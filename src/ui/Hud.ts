@@ -4,8 +4,8 @@ import type { RoutePoint } from '../game/RoadGraph';
 import type { SignalColor } from '../game/TrafficSystem';
 import type { StationPhase } from '../game/StationCycle';
 import type { MissionFailure } from '../game/RouteMission';
-import policeArt from '../../assets/failure/police-v1.png?url';
-import angryWorkerArt from '../../assets/failure/angry-worker-v1.png?url';
+import { gameArt } from './GameAssets';
+import { displayImage } from './SafeImage';
 import { restartMission } from './RestartPolicy';
 
 export class Hud {
@@ -99,11 +99,12 @@ export class Hud {
     this.settlement.className = `settlement${data.failure ? ` mission-failed ${data.failure.reason === 'collision' ? 'collision-failed' : 'anger-failed'}` : ''}`;
     if (data.settlement || data.failure) {
       const settlementMarkup = data.failure
-        ? `<img class="failure-illustration" src="${data.failure.reason === 'collision' ? policeArt : angryWorkerArt}" alt="${data.failure.reason === 'collision' ? '迎面衝出的警車' : '暴怒收運人員舉起回收籃子'}" draggable="false"><div class="failure-message" role="alertdialog" aria-modal="true" aria-label="任務失敗"><div class="eyebrow">SHIFT FAILED / 收運中止</div><strong>任務失敗</strong><div class="failure-cause">${data.failure.reason === 'collision' ? '發生交通事故' : '隨車人員暴怒！'}</div><p>${data.failure.reason === 'collision' ? `撞到${data.failure.collisionLabel ?? '車輛或建築物'}，本次收運立即中止。` : '隨車人員怒氣達到 100%，拒絕繼續收運。'}</p><div class="report-row"><span>出車時間</span><span>${this.duration(data.failure.totalSeconds)}</span></div><div class="report-row"><span>完成站數</span><span>${data.failure.stationCount} / ${data.stationCount}</span></div><button type="button" id="restart-mission">重新出車 →</button></div>`
+        ? `<img class="failure-illustration" data-asset="${data.failure.reason === 'collision' ? gameArt.police : gameArt.worker}" alt="${data.failure.reason === 'collision' ? '迎面衝出的警車' : '暴怒收運人員舉起回收籃子'}" draggable="false"><div class="failure-message" role="alertdialog" aria-modal="true" aria-label="任務失敗"><div class="eyebrow">SHIFT FAILED / 收運中止</div><strong>任務失敗</strong><div class="failure-cause">${data.failure.reason === 'collision' ? '發生交通事故' : '隨車人員暴怒！'}</div><p>${data.failure.reason === 'collision' ? `撞到${data.failure.collisionLabel ?? '車輛或建築物'}，本次收運立即中止。` : '隨車人員怒氣達到 100%，拒絕繼續收運。'}</p><div class="report-row"><span>出車時間</span><span>${this.duration(data.failure.totalSeconds)}</span></div><div class="report-row"><span>完成站數</span><span>${data.failure.stationCount} / ${data.stationCount}</span></div><button type="button" id="restart-mission">重新出車 →</button></div>`
         : `<div class="eyebrow">SHIFT COMPLETE / 收運報告</div><strong>辛苦了，收工！</strong><p>三站回收物已完成收運</p><div class="score"><b>${data.settlement!.score}</b><span>勤務評分</span></div><div class="report-row"><span>完成時間</span><span>${this.duration(data.settlement!.totalSeconds)}</span></div><div class="report-row"><span>累計延誤</span><span>${Math.round(data.settlement!.totalDelaySeconds)} 秒</span></div>${mobile ? '' : `<div class="report-row"><span>最高怒氣</span><span>${Math.round(data.settlement!.peakAnger)} / 100</span></div>`}<div class="report-row"><span>完成站數</span><span>${data.settlement!.stationCount} / ${data.stationCount}</span></div><button type="button" id="restart-mission">重新出車 →</button>`;
       if (this.settlementMarkup !== settlementMarkup) {
         this.settlementMarkup = settlementMarkup;
         this.settlement.innerHTML = settlementMarkup;
+        for (const image of Array.from(this.settlement.querySelectorAll<HTMLImageElement>('img[data-asset]'))) displayImage(image, image.dataset.asset!);
         this.settlement.querySelector('button')?.addEventListener('click', () => restartMission(Boolean(data.failure)));
       }
     }

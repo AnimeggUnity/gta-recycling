@@ -1,7 +1,14 @@
 :root { color-scheme: dark; font-family: 'Noto Sans TC', system-ui, sans-serif; background: #15272a; color: #e6ead7; }
+img[data-image-state='loading'], img[data-image-state='error'] { opacity: 0; }
+.sorting-item[data-image-state='loading']::after, .sorting-item[data-image-state='error']::after { content: '⋯'; position: absolute; inset: 15%; display: grid; place-items: center; border: 1px dashed #d9c889; border-radius: 8px; background: #24453f; color: #ead39a; font-size: 18px; }
+.sorting-item[data-image-state='error']::after { content: '重試'; font-size: 11px; }.sorting-item:disabled { cursor: wait; }
+.asset-loading { margin-top: 10px; padding-top: 8px; border-top: 1px solid #597067; font-size: 11px; color: #b8ccbe; text-align: center; }
+.asset-load-progress { display: block; width: 100%; height: 8px; margin-top: 6px; accent-color: #e3cc8c; }.asset-load-progress[hidden] { display: none; }
+.asset-load-retry { margin-top: 8px; min-height: 40px; padding: 8px 14px; border: 1px solid #d6ba7e; background: #d9c58a; color: #203a3a; font: 700 12px system-ui; cursor: pointer; }.asset-load-retry[hidden] { display: none; }
+.asset-load-retry:focus-visible { outline: 3px solid #e9dab0; outline-offset: 3px; }.retry-loading p { font-size: 13px; color: #b8ccbe; }
 .intro-panel { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); background: #091e25dc; cursor: pointer; overflow: auto; touch-action: pan-y; }
 .intro-panel[hidden] { display: none; }.intro-panel:focus { outline: none; }
-.intro-card { width: min(620px, 100%); padding: 24px 28px; border: 2px solid #7c9d89; border-top: 5px solid #e3cc8c; background: #193235; box-shadow: 8px 8px 0 #05171b; }
+.intro-card { width: min(620px, 100%); max-height: 100%; min-height: 0; overflow-y: auto; padding: 24px 28px; border: 2px solid #7c9d89; border-top: 5px solid #e3cc8c; background: #193235; box-shadow: 8px 8px 0 #05171b; }
 .intro-card h1 { margin: 8px 0; font-size: 34px; color: #eddfb5; }.intro-objective { color: #b9ceb9; font-size: 14px; margin: 0 0 16px; }
 .intro-card ol { margin: 0; padding-left: 24px; }.intro-card li { padding-left: 4px; margin: 0 0 12px; color: #e9d292; }.intro-card li b { font-size: 15px; }.intro-card li span { display: block; color: #b8ccbe; font-size: 13px; line-height: 1.6; margin-top: 3px; }
 .intro-controls { border-top: 1px solid #597067; margin: 12px 0; padding-top: 10px; color: #b8ccbe; font-size: 12px; line-height: 1.6; }

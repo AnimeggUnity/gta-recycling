@@ -18,6 +18,7 @@ import { Hud } from '../ui/Hud';
 import { SortingPanel } from '../ui/SortingPanel';
 import { IntroPanel } from '../ui/IntroPanel';
 import { consumeFailureRestart } from '../ui/RestartPolicy';
+import { gameAssets } from '../ui/GameAssets';
 import { drawStreetArt } from './StreetArt';
 import { drawCrewExpression, drawPerson, drawTruckBody } from './TruckArt';
 import { TrafficArt } from './TrafficArt';
@@ -79,7 +80,7 @@ export class GameScene extends Phaser.Scene {
     this.intro = new IntroPanel(() => {
       this.controls.reset();
       window.dispatchEvent(new Event('gta-input-reset'));
-    }, consumeFailureRestart());
+    }, consumeFailureRestart(), gameAssets);
   }
 
   public update(_time: number, deltaMs: number): void {

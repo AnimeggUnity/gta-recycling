@@ -1,0 +1,14 @@
+# 遊戲用小尺寸素材
+
+原始 AI 生成素材保留於 `assets/recycling/samples-v1/`、`assets/recycling/backgrounds/` 與 `assets/failure/`；來源與生成提示詞沿用各原稿目錄的紀錄，沒有重新生成美術。
+
+使用 `npm run assets:optimize`（sharp 0.35.5）重建此目錄。腳本只讀取原稿，輸出到 `assets/optimized/`，不覆寫原圖。
+
+- 回收物：最長邊 256px，保留比例、透明度、最近鄰縮圖，WebP 無損編碼。
+- 分類底圖：768×1152，保留 2:3 構圖，最近鄰縮圖、WebP 品質 88。
+- 失敗插圖：最長邊 512px，透明 WebP 無損編碼。
+- `manifest.json` 記錄每張來源／輸出、尺寸、編碼方式與檔案大小。
+
+28 張素材共 20,780,667 → 1,448,092 bytes（約減少 93%）；25 張回收物本身為 681,966 bytes。
+
+遊戲只引用此目錄的版本；原稿與預覽頁不加入遊戲發布包。Vite 保留獨立、帶內容雜湊的素材 URL，供瀏覽器快取。

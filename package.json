@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "assets:optimize": "node scripts/optimize-assets.mjs",
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "check": "tsc --noEmit",
@@ -17,6 +18,7 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20261010.1",
     "@types/node": "^24.0.0",
+    "sharp": "^0.35.5",
     "typescript": "^5.9.3",
     "vite": "^7.1.0",
     "vitest": "^3.2.4",

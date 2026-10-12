@@ -4,9 +4,8 @@ import type { StationCycle } from '../game/StationCycle';
 import { touchInput } from './TouchInputState';
 import { sortingScatter } from './SortingScatter';
 import { SORTING_DROP_ZONES } from '../config/sortingLayout';
-import background from '../../assets/recycling/backgrounds/truck-bed-sorting-v1.png?url';
-
-const images = import.meta.glob<string>('../../assets/recycling/samples-v1/*/*.png', { eager: true, query: '?url', import: 'default' });
+import { gameArt, recyclingImage } from './GameAssets';
+import { displayImage } from './SafeImage';
 type Command = { queue: SortingQueue; instanceId: number; target: SortingTarget };
 
 export class SortingPanel {
@@ -20,16 +19,17 @@ export class SortingPanel {
   private readonly items = new Map<number, HTMLButtonElement>();
   private drag?: { pointer: number; card: HTMLButtonElement; x: number; y: number; moved: boolean };
   private suppressClick = false;
+  private staticImagesBound = false;
   public constructor() {
     this.element.className = 'sorting-panel';
     this.element.hidden = true;
     this.element.setAttribute('aria-label', '車斗回收物分類');
     const bins = Object.entries(SORTING_DROP_ZONES).map(([id, zone]) => {
       const label = SORTING_TARGETS[id as SortingTarget];
-      const icon = zone.icon ? `<img alt="" draggable="false" src="${images[`../../assets/recycling/samples-v1/${SORTING_ITEMS[zone.icon].asset}`]}">` : '<span aria-hidden="true">↩</span>';
+      const icon = zone.icon ? `<img alt="" draggable="false" data-asset="${recyclingImage(SORTING_ITEMS[zone.icon].asset)}">` : '<span aria-hidden="true">↩</span>';
       return `<button type="button" data-bin="${id}" class="sorting-bin ${id}" style="left:${zone.x}%;top:${zone.y}%;width:${zone.width}%;height:${zone.height}%" aria-label="${label}${id === 'reject' ? '區' : '收集袋'}"><span class="bag-label">${icon}<span>${label}</span></span></button>`;
     }).join('');
-    this.element.innerHTML = `<div class="sorting-workspace"><header><p class="sorting-progress"></p></header><div class="sorting-scene"><img class="sorting-background" src="${background}" alt="俯視回收車斗，下方籃子與上方四個分類袋口" draggable="false">${bins}<div class="sorting-pile" aria-label="正前方籃子裡的散裝回收物"></div></div><div class="sorting-feedback" role="status">等候居民交付</div><p class="sorting-help">拖進袋口 · 或點物品再點袋子</p></div>`;
+    this.element.innerHTML = `<div class="sorting-workspace"><header><p class="sorting-progress"></p></header><div class="sorting-scene"><img class="sorting-background" data-asset="${gameArt.background}" alt="俯視回收車斗，下方籃子與上方四個分類袋口" draggable="false">${bins}<div class="sorting-pile" aria-label="正前方籃子裡的散裝回收物"></div></div><div class="sorting-feedback" role="status">等候居民交付</div><p class="sorting-help">拖進袋口 · 或點物品再點袋子</p></div>`;
     this.pile = this.element.querySelector('.sorting-pile')!;
     this.status = this.element.querySelector('.sorting-feedback')!;
     this.heading = this.element.querySelector('.sorting-progress')!;
@@ -47,6 +47,10 @@ export class SortingPanel {
   }
   public update(cycle?: StationCycle): void {
     const active = Boolean(cycle?.sorting && cycle.departureLocked);
+    if (active && !this.staticImagesBound) {
+      this.staticImagesBound = true;
+      for (const image of Array.from(this.element.querySelectorAll<HTMLImageElement>('img[data-asset]'))) displayImage(image, image.dataset.asset!);
+    }
     if (active !== !this.element.hidden) {
       this.cancelDrag(); touchInput.reset(); window.dispatchEvent(new Event('gta-input-reset'));
       document.body.dataset.sorting = String(active);
@@ -92,10 +96,19 @@ export class SortingPanel {
       card.style.setProperty('--pile-x', String(position.x)); card.style.setProperty('--pile-y', String(position.y));
       card.style.setProperty('--rotation', `${position.rotation}deg`); card.style.setProperty('--item-scale', String(position.scale));
       card.style.setProperty('--depth', String(entry.instanceId));
-      card.innerHTML = `<img alt="" draggable="false" src="${images[`../../assets/recycling/samples-v1/${entry.item.asset}`]}">`;
-      card.addEventListener('click', (event) => { if (this.suppressClick && event.detail > 0) { this.suppressClick = false; return; } this.selected = entry.instanceId; });
+      const image = document.createElement('img'); image.alt = ''; image.draggable = false; card.append(image);
+      const loadImage = () => displayImage(image, recyclingImage(entry.item.asset), state => {
+        card.dataset.imageState = state; card.disabled = state === 'loading';
+        card.setAttribute('aria-label', state === 'error' ? `${entry.item.label}圖片載入失敗，點選重試` : `${entry.item.label}，點選或拖曳分類`);
+      });
+      loadImage();
+      card.addEventListener('click', (event) => {
+        if (card.dataset.imageState === 'error') { this.selected = undefined; loadImage(); return; }
+        if (card.dataset.imageState !== 'ready') return;
+        if (this.suppressClick && event.detail > 0) { this.suppressClick = false; return; } this.selected = entry.instanceId;
+      });
       card.addEventListener('pointerdown', (event) => {
-        if (this.drag || event.button !== 0) return;
+        if (card.dataset.imageState !== 'ready' || this.drag || event.button !== 0) return;
         event.preventDefault(); card.focus(); card.setPointerCapture(event.pointerId);
         this.selected = entry.instanceId;
         this.suppressClick = false;
