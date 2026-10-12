@@ -10,12 +10,17 @@ export const DISPLAY = {
   uprightRotation: Math.PI / 2,
   maxZoom: 1.1,
   visibleStreetWidth: 460,
-  wheelDeadZone: 0.08,
-  wheelTravelRatio: 0.35,
   touchLookAheadSeconds: 0.2,
   touchCameraOffsetRatio: 0.12,
   crewFaceOffset: 10,
   crewFaceRadius: 12,
+} as const;
+
+export const TOUCH_STEERING = {
+  maximumAngleDegrees: 90,
+  deadAngleDegrees: 4,
+  responseExponent: 1.5,
+  centerRadiusRatio: 0.18,
 } as const;
 
 export const SERVICE = {

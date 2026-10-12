@@ -44,7 +44,7 @@ describe('opening rules', () => {
   });
   it('uses touch instructions for mobile devices', () => {
     const { element } = mount('mobile');
-    expect(element.innerHTML).toContain('方向盤轉向');
+    expect(element.innerHTML).toContain('沿方向盤圓周旋轉');
     expect(element.innerHTML).toContain('點畫面任意位置開始');
   });
 });
