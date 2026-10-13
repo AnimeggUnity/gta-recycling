@@ -8,15 +8,19 @@ describe('sorting artwork layout', () => {
     const first = sortingScatter(3);
     for (let id = 1; id <= 100; id++) {
       const position = sortingScatter(id);
-      expect(position.x).toBeGreaterThanOrEqual(34);
-      expect(position.x).toBeLessThanOrEqual(66);
-      expect(position.y).toBeGreaterThanOrEqual(32);
-      expect(position.y).toBeLessThanOrEqual(70);
-      expect(position.rotation).toBeGreaterThanOrEqual(-55);
-      expect(position.rotation).toBeLessThanOrEqual(55);
+      expect(position.x).toBeGreaterThanOrEqual(16);
+      expect(position.x).toBeLessThanOrEqual(84);
+      expect(position.y).toBeGreaterThanOrEqual(28);
+      expect(position.y).toBeLessThanOrEqual(72);
+      expect(position.rotation).toBeGreaterThanOrEqual(-40);
+      expect(position.rotation).toBeLessThanOrEqual(40);
     }
     expect(sortingScatter(3)).toEqual(first);
     expect(sortingScatter(4)).not.toEqual(first);
+    const floor = Array.from({ length: 12 }, (_, index) => sortingScatter(index + 1));
+    expect(new Set(floor.map(item => `${Math.round((item.x - 18) / (64 / 3))},${Math.round((item.y - 30) / 20)}`)).size).toBe(12);
+    expect(Math.max(...floor.map(item => item.x)) - Math.min(...floor.map(item => item.x))).toBeGreaterThan(60);
+    expect(Math.max(...floor.map(item => item.y)) - Math.min(...floor.map(item => item.y))).toBeGreaterThan(36);
   });
   it('maps each sack to a representative item of its own category', () => {
     for (const [target, zone] of Object.entries(SORTING_DROP_ZONES)) {

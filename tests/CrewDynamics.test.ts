@@ -12,6 +12,14 @@ const smooth: VehicleTelemetry = {
 };
 
 describe('CrewDynamics', () => {
+  it('resets anger and efficiency after a station but preserves physical movement and can gain anger again', () => {
+    const crew = new CrewDynamics(); crew.anger = 80; crew.swayForward = 0.4; crew.bounce = 0.6;
+    crew.finishStation();
+    expect(crew.anger).toBe(0); expect(crew.efficiency).toBe(1); expect(crew.reaction).toBe('calm');
+    expect(crew.swayForward).toBe(0.4); expect(crew.bounce).toBe(0.6);
+    crew.update(smooth, 0.5, 1 / 60);
+    expect(crew.anger).toBeGreaterThan(0);
+  });
   it('reacts immediately to a vehicle collision rather than labeling it a pothole', () => {
     const crew = new CrewDynamics();
     crew.update(smooth, 0, 1 / 60, { collisionImpact: 0.8 });
@@ -48,12 +56,12 @@ describe('CrewDynamics', () => {
     expect(crew.reaction).toBe('furious');
   });
 
-  it('increases anger whenever speed exceeds 40 km/h', () => {
+  it('increases anger whenever speed exceeds 35 km/h', () => {
     const crew = new CrewDynamics();
-    const speeding = { ...smooth, speed: 41 / 0.35, longitudinalSpeed: 41 / 0.35 };
+    const speeding = { ...smooth, speed: 36 / 0.35, longitudinalSpeed: 36 / 0.35 };
     for (let i = 0; i < 60; i += 1) crew.update(speeding, 0, 1 / 60);
     expect(crew.anger).toBeGreaterThan(2);
-    expect(crew.irritationCause).toBe('車速超過 40 km/h');
+    expect(crew.irritationCause).toBe('車速超過 35 km/h');
   });
 
   it('increases anger when turning above 20 km/h', () => {

@@ -1,0 +1,28 @@
+{
+  "generator": "built-in image_gen",
+  "base": "../eva-mat-v1.png",
+  "transparentBackground": true,
+  "assets": [
+    {
+      "file": "01-blue.png",
+      "color": "藍色",
+      "source": "original base image, copied unchanged"
+    },
+    {
+      "file": "02-green.png",
+      "prompt": "Use case: precise-object-edit. Edit the referenced EVA foam puzzle floor mat sprite by changing ONLY its foam color. Preserve the exact existing single tile silhouette, all interlocking teeth and recesses, perspective, pixel size, dark teal outline, thin foam thickness, sparse embossed marks, upper-left light, cream highlight positions, framing and transparent background. No new objects, text, shadows, scenes or sprite sheet. Keep the existing chunky pixel-art style. Recolor the cyan top face to muted sage/mint GREEN, clearly green rather than cyan (main tone approximately #94b98a) and recolor blue side thickness and surface marks to darker harmonizing shades of that same color; keep darkest teal outline and cream highlights. Output ONE isolated complete tile on genuine transparent background."
+    },
+    {
+      "file": "03-yellow.png",
+      "prompt": "Use case: precise-object-edit. Edit the referenced EVA foam puzzle floor mat sprite by changing ONLY its foam color. Preserve the exact existing single tile silhouette, all interlocking teeth and recesses, perspective, pixel size, dark teal outline, thin foam thickness, sparse embossed marks, upper-left light, cream highlight positions, framing and transparent background. No new objects, text, shadows, scenes or sprite sheet. Keep the existing chunky pixel-art style. Recolor the cyan top face to muted warm butter YELLOW, clearly yellow (main tone approximately #d8bd70) and recolor blue side thickness and surface marks to darker harmonizing shades of that same color; keep darkest teal outline and cream highlights. Output ONE isolated complete tile on genuine transparent background."
+    },
+    {
+      "file": "04-pink.png",
+      "prompt": "Use case: precise-object-edit. Edit the referenced EVA foam puzzle floor mat sprite by changing ONLY its foam color. Preserve the exact existing single tile silhouette, all interlocking teeth and recesses, perspective, pixel size, dark teal outline, thin foam thickness, sparse embossed marks, upper-left light, cream highlight positions, framing and transparent background. No new objects, text, shadows, scenes or sprite sheet. Keep the existing chunky pixel-art style. Recolor the cyan top face to muted dusty rose PINK, clearly pink (main tone approximately #ce9aa8) and recolor blue side thickness and surface marks to darker harmonizing shades of that same color; keep darkest teal outline and cream highlights. Output ONE isolated complete tile on genuine transparent background."
+    },
+    {
+      "file": "05-purple.png",
+      "prompt": "Use case: precise-object-edit. Edit the referenced EVA foam puzzle floor mat sprite by changing ONLY its foam color. Preserve the exact existing single tile silhouette, all interlocking teeth and recesses, perspective, pixel size, dark teal outline, thin foam thickness, sparse embossed marks, upper-left light, cream highlight positions, framing and transparent background. No new objects, text, shadows, scenes or sprite sheet. Keep the existing chunky pixel-art style. Recolor the cyan top face to muted lavender PURPLE, clearly purple (main tone approximately #aa96c6) and recolor blue side thickness and surface marks to darker harmonizing shades of that same color; keep darkest teal outline and cream highlights. Output ONE isolated complete tile on genuine transparent background."
+    }
+  ]
+}

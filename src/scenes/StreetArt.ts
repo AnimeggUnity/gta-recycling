@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
-import { DISPLAY, STREET, TRAFFIC, WORLD } from '../config/balance';
+import { bayBoundary, bayBounds, bayGuideY, isCurvedBay } from '../game/CollectionBay';
+import { CURVED_BAY, DISPLAY, STREET, TRAFFIC, WORLD } from '../config/balance';
 import { POTHOLES } from '../config/hazards';
 import { ROUTE_STATIONS } from '../config/stations';
 import { BUILDINGS, PARKED_SCOOTERS, TREES, type Building } from '../config/street';
@@ -23,14 +24,20 @@ export function drawStreetArt(scene: Phaser.Scene): void {
   // Break the curb at collection bays so trucks can actually pull off the traffic lane.
   let curbStart = 0;
   for (const station of ROUTE_STATIONS) {
-    const left = station.stop.x - STREET.bayHalfLength;
-    const right = station.stop.x + STREET.bayHalfLength;
+    const { left, right } = bayBounds(station.stop);
+    const boundary = bayBoundary(station.stop);
     g.lineStyle(3, 0xc16854).lineBetween(curbStart, STREET.bottom + 1, left, STREET.bottom + 1);
-    g.fillStyle(0x3d4847).fillRect(left, STREET.bottom, right - left, STREET.bayY + STREET.bayHalfWidth - STREET.bottom);
-    g.lineStyle(2, 0xd0b875).lineBetween(left, STREET.bottom, left, STREET.bayY + STREET.bayHalfWidth);
-    g.lineBetween(left, STREET.bayY + STREET.bayHalfWidth, right, STREET.bayY + STREET.bayHalfWidth);
-    g.lineBetween(right, STREET.bayY + STREET.bayHalfWidth, right, STREET.bottom);
-    scene.add.text(station.stop.x, STREET.bayY + 28, '回收灣', { fontFamily: 'monospace', fontSize: '11px', color: '#b5ad80' }).setOrigin(0.5).setRotation(DISPLAY.uprightRotation);
+    g.fillStyle(0x3d4847).fillPoints(boundary, true);
+    g.lineStyle(2, 0xd0b875).strokePoints(boundary, false);
+    if (isCurvedBay(station.stop)) {
+      // Sparse dashes leave the curved pavement legible beneath the truck.
+      for (let x = left; x < right; x += 30) {
+        g.lineStyle(2, 0xd0b875, 0.5).beginPath().moveTo(x, bayGuideY(station.stop, x));
+        for (let dx = CURVED_BAY.sampleSpacing; dx <= 15; dx += CURVED_BAY.sampleSpacing) g.lineTo(x + dx, bayGuideY(station.stop, x + dx));
+        g.strokePath();
+      }
+    }
+    scene.add.text(station.stop.x, station.stop.y + 28, '回收灣', { fontFamily: 'monospace', fontSize: '11px', color: '#b5ad80' }).setOrigin(0.5).setRotation(DISPLAY.uprightRotation);
     curbStart = right;
   }
   g.lineStyle(3, 0xc16854).lineBetween(curbStart, STREET.bottom + 1, WORLD.width, STREET.bottom + 1);

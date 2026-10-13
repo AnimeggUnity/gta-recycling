@@ -1,0 +1,161 @@
+{
+  "generator": "built-in image_gen",
+  "assets": [
+    {
+      "id": "non-recyclable-toilet-seat",
+      "label": "馬桶蓋",
+      "file": "01-toilet-seat.png",
+      "target": "reject",
+      "generatedSource": "exec-db13646b-7ac0-4310-8354-736140a94627.png"
+    },
+    {
+      "id": "non-recyclable-pillow",
+      "label": "枕頭",
+      "file": "02-pillow.png",
+      "target": "reject",
+      "generatedSource": "exec-cbd5a05e-a203-41c5-9a7e-49f0e0cbc314.png"
+    },
+    {
+      "id": "non-recyclable-wood",
+      "label": "木頭",
+      "file": "03-wood.png",
+      "target": "reject",
+      "generatedSource": "exec-3e922805-4bcb-46a5-b618-aad1d3600abe.png"
+    },
+    {
+      "id": "non-recyclable-shoe",
+      "label": "鞋子",
+      "file": "04-shoe.png",
+      "target": "reject",
+      "generatedSource": "exec-a9c1ed95-9df5-40c9-a8d6-1981f5fae1f8.png"
+    },
+    {
+      "id": "non-recyclable-backpack",
+      "label": "後背包",
+      "file": "05-backpack.png",
+      "target": "reject",
+      "generatedSource": "exec-44b5a35b-a205-45a1-bb22-08b83b7729eb.png"
+    }
+  ],
+  "activeAssets": [
+    {
+      "id": "non-recyclable-toilet-seat",
+      "label": "馬桶蓋",
+      "asset": "non-recyclable/01-toilet-seat.png",
+      "target": "reject"
+    },
+    {
+      "id": "non-recyclable-wood",
+      "label": "木頭",
+      "asset": "non-recyclable/03-wood.png",
+      "target": "reject"
+    },
+    {
+      "id": "non-recyclable-shoe",
+      "label": "鞋子",
+      "asset": "non-recyclable/04-shoe.png",
+      "target": "reject"
+    },
+    {
+      "id": "non-recyclable-backpack",
+      "label": "後背包",
+      "asset": "non-recyclable/05-backpack.png",
+      "target": "reject"
+    },
+    {
+      "id": "non-recyclable-shoe-red-high-top",
+      "label": "鞋子",
+      "asset": "non-recyclable/06-shoe-red-high-top.png",
+      "target": "reject"
+    },
+    {
+      "id": "non-recyclable-shoe-green-slip-on",
+      "label": "鞋子",
+      "asset": "non-recyclable/07-shoe-green-slip-on.png",
+      "target": "reject"
+    },
+    {
+      "id": "non-recyclable-wood-short-log",
+      "label": "木頭",
+      "asset": "non-recyclable/08-wood-short-log.png",
+      "target": "reject"
+    },
+    {
+      "id": "non-recyclable-wood-flat-plank",
+      "label": "木頭",
+      "asset": "non-recyclable/09-wood-flat-plank.png",
+      "target": "reject"
+    },
+    {
+      "id": "non-recyclable-backpack-clay-flap",
+      "label": "後背包",
+      "asset": "non-recyclable/10-backpack-clay-flap.png",
+      "target": "reject"
+    },
+    {
+      "id": "non-recyclable-backpack-olive-hiking",
+      "label": "後背包",
+      "asset": "non-recyclable/11-backpack-olive-hiking.png",
+      "target": "reject"
+    },
+    {
+      "id": "non-recyclable-eva-mat-blue",
+      "label": "藍色巧拼墊",
+      "asset": "eva-mat/01-blue.png",
+      "target": "reject"
+    },
+    {
+      "id": "non-recyclable-eva-mat-green",
+      "label": "綠色巧拼墊",
+      "asset": "eva-mat/02-green.png",
+      "target": "reject"
+    },
+    {
+      "id": "non-recyclable-eva-mat-yellow",
+      "label": "黃色巧拼墊",
+      "asset": "eva-mat/03-yellow.png",
+      "target": "reject"
+    },
+    {
+      "id": "non-recyclable-eva-mat-pink",
+      "label": "粉紅色巧拼墊",
+      "asset": "eva-mat/04-pink.png",
+      "target": "reject"
+    },
+    {
+      "id": "non-recyclable-eva-mat-purple",
+      "label": "紫色巧拼墊",
+      "asset": "eva-mat/05-purple.png",
+      "target": "reject"
+    }
+  ],
+  "archivedAssets": [
+    "02-pillow.png"
+  ],
+  "variantSources": [
+    {
+      "file": "06-shoe-red-high-top.png",
+      "source": "exec-fe658d31-90ed-4d54-9270-ce00bc54c5fd.png"
+    },
+    {
+      "file": "07-shoe-green-slip-on.png",
+      "source": "exec-43d2ebce-f792-4dde-ac7c-41f9b176e506.png"
+    },
+    {
+      "file": "08-wood-short-log.png",
+      "source": "exec-975002cc-eaac-4212-a4d7-af0e18875ea7.png"
+    },
+    {
+      "file": "09-wood-flat-plank.png",
+      "source": "exec-61519ab8-d576-40d1-b249-83cab4086fe6.png"
+    },
+    {
+      "file": "10-backpack-clay-flap.png",
+      "source": "exec-543754f0-406c-42ab-8a6d-cb62c45e06d2.png"
+    },
+    {
+      "file": "11-backpack-olive-hiking.png",
+      "source": "exec-e17b4c1b-5b81-4d8c-b65c-c029113bb831.png"
+    }
+  ]
+}

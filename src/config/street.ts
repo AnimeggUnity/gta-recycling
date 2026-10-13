@@ -1,4 +1,5 @@
-import { STREET, TRAFFIC, WORLD } from './balance';
+import { bayBounds } from '../game/CollectionBay';
+import { CURVED_BAY, STREET, TRAFFIC, WORLD } from './balance';
 import { ROUTE_STATIONS } from './stations';
 import type { CollisionObstacle } from '../game/CollisionWorld';
 
@@ -16,7 +17,7 @@ export const TREES = Array.from({ length: Math.floor(WORLD.width / 400) }, (_, i
   { id: `north-tree-${index}`, x: index * 400 + 75, y: 362 },
   { id: `south-tree-${index}`, x: index * 400 + 260, y: 758 },
 ]).flat().filter((tree) =>
-  !ROUTE_STATIONS.some((station) => tree.y > STREET.bottom && Math.abs(tree.x - station.stop.x) < STREET.bayHalfLength + 70)
+  !ROUTE_STATIONS.some((station) => tree.y > STREET.bottom && tree.x > bayBounds(station.stop).left - CURVED_BAY.obstacleMargin && tree.x < bayBounds(station.stop).right + CURVED_BAY.obstacleMargin)
   && !TRAFFIC.signalXs.some((x) => Math.hypot(tree.x - (x + (tree.y > STREET.bottom ? 1 : -1) * TRAFFIC.stopLineOffset), tree.y - (tree.y > STREET.bottom ? 741 : 365)) < 45));
 
 export const PARKED_SCOOTERS = Array.from({ length: 16 }, (_, index) => ({

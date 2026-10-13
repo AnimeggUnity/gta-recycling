@@ -30,6 +30,12 @@ export class CargoHold {
     this.maxWeight = maxWeight;
   }
 
+  public addGarbage(volume: number, weight: number): boolean {
+    if (this.volume + volume > this.maxVolume || this.weight + weight > this.maxWeight) return false;
+    this.volume += volume; this.weight += weight;
+    return true;
+  }
+
   public canAdd(item: CargoItem): boolean {
     return this.volume + item.volume <= this.maxVolume && this.weight + item.weight <= this.maxWeight;
   }

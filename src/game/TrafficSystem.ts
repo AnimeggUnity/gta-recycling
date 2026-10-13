@@ -56,7 +56,7 @@ export class TrafficSystem {
     }
   }
 
-  public update(dt: number, player: CollisionBody): void {
+  public update(dt: number, player: CollisionBody, merging?: CollisionBody): void {
     if (dt <= 0) return;
     this.elapsedSeconds += dt;
     // Plan all movements from the same snapshot so queue behavior is order-independent.
@@ -67,9 +67,12 @@ export class TrafficSystem {
         const ahead = (other.x - vehicle.x) * vehicle.direction;
         if (ahead > 0) gap = Math.min(gap, ahead - vehicle.halfLength - other.halfLength - TRAFFIC.followingGap);
       }
-      if (Math.abs(player.y - vehicle.y) < bodyYExtent(player) + vehicle.halfWidth + 5) {
-        const ahead = (player.x - vehicle.x) * vehicle.direction;
-        if (ahead > 0) gap = Math.min(gap, ahead - vehicle.halfLength - bodyXExtent(player) - TRAFFIC.followingGap);
+      // An automatic bay turn requests clearance from vehicles approaching behind.
+      for (const target of merging ? [player, merging] : [player]) {
+        if (Math.abs(target.y - vehicle.y) < bodyYExtent(target) + vehicle.halfWidth + 5) {
+          const ahead = (target.x - vehicle.x) * vehicle.direction;
+          if (ahead > 0) gap = Math.min(gap, ahead - vehicle.halfLength - bodyXExtent(target) - TRAFFIC.followingGap);
+        }
       }
       for (const signal of TRAFFIC_SIGNALS) {
         if (signalColor(signal, this.elapsedSeconds) === 'green') continue;

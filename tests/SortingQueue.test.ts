@@ -3,14 +3,17 @@ import { CargoHold } from '../src/game/CargoHold';
 import { SortingQueue } from '../src/game/SortingQueue';
 import { SORTING_ITEMS, SORTING_BATCHES } from '../src/config/sorting';
 
-const bottle = 'pet-bottle-tall-ribbed', tissue = 'used-tissue-soft-wad';
+const bottle = 'pet-bottle-tall-ribbed';
 describe('manual sorting', () => {
-  it('uses all 25 unique sample silhouettes with three items per resident', () => {
+  it('uses every active silhouette exactly once across the existing ten residents', () => {
     const batches = SORTING_BATCHES.flat();
     expect(batches).toHaveLength(10);
-    expect(batches.every((batch) => batch.length === 3)).toBe(true);
-    expect(new Set(batches.flat()).size).toBe(25);
-    expect(Object.keys(SORTING_ITEMS)).toHaveLength(25);
+    expect(batches.every((batch) => batch.length >= 3 && batch.length <= 4)).toBe(true);
+    expect(new Set(batches.flat()).size).toBe(35);
+    expect(Object.keys(SORTING_ITEMS)).toHaveLength(35);
+    expect(batches.flat()).toHaveLength(35);
+    expect(SORTING_ITEMS['non-recyclable-pillow']).toBeUndefined();
+    expect(Object.values(SORTING_ITEMS).filter(item => item.target === 'reject')).toHaveLength(15);
   });
   it('gives duplicate pictures independent IDs and accepts each only once', () => {
     const cargo = new CargoHold(), queue = new SortingQueue(cargo);
@@ -31,9 +34,9 @@ describe('manual sorting', () => {
     expect(queue.mistakes).toBe(2);
     expect(cargo.volume).toBe(0);
   });
-  it('returns tissue without loading it into the truck', () => {
+  it.each(Object.values(SORTING_ITEMS).filter(item => item.target === 'reject').map(item => item.id))('returns %s without loading it into the truck', (variant) => {
     const cargo = new CargoHold(), queue = new SortingQueue(cargo);
-    queue.deliver([tissue]);
+    queue.deliver([variant]);
     expect(queue.place(queue.pending[0].instanceId, 'paper')).toBe('wrong');
     expect(queue.place(queue.pending[0].instanceId, 'reject')).toBe('returned');
     expect(queue.returned).toBe(1);

@@ -1,9 +1,9 @@
 import type { RouteStation } from '../game/RouteMission';
-import { STREET } from './balance';
+import { CURVED_BAY, STREET } from './balance';
 import { SORTING_BATCHES } from './sorting';
 
 const stop = (x: number) => ({
-  x, y: STREET.bayY, radius: 85, exitRadius: 180,
+  x, y: CURVED_BAY.stationXs.includes(x) ? CURVED_BAY.stopY : STREET.bayY, radius: 85, exitRadius: 180,
   docking: { halfLength: STREET.dockingHalfLength, halfWidth: STREET.dockingHalfWidth, heading: 0, headingTolerance: STREET.dockingHeadingTolerance },
 });
 
@@ -57,3 +57,8 @@ export const ROUTE_STATIONS = [
 ] satisfies readonly RouteStation[];
 
 export const FIRST_STATION = ROUTE_STATIONS[0];
+
+// Same driving route, with independent station work and no sorting batches.
+export const GARBAGE_STATIONS: readonly RouteStation[] = ROUTE_STATIONS.map(({ sortingBatches: _sorting, deliveries: _deliveries, residentDelays: _delays, ...station }) => ({
+  ...station, garbage: true, deliveries: [],
+}));

@@ -1,11 +1,13 @@
 import type { VehicleTelemetry } from './Vehicle';
-import { TRAFFIC, VEHICLE } from '../config/balance';
+import type { SurfaceFeedback } from './SurfaceSystem';
+import { SIDEWALK, TRAFFIC, VEHICLE } from '../config/balance';
 
 export type CrewReaction = 'calm' | 'annoyed' | 'angry' | 'furious';
 export type CrewRiskContext = Readonly<{
   steeringInput?: number;
   residentDelaySeconds?: number;
   collisionImpact?: number;
+  surface?: SurfaceFeedback;
 }>;
 
 export class CrewDynamics {
@@ -26,6 +28,11 @@ export class CrewDynamics {
     return 'calm';
   }
 
+  public finishStation(): void {
+    this.anger = 0;
+    this.irritationCause = '本站收運完成，怒氣已歸零';
+  }
+
   public update(telemetry: VehicleTelemetry, potholeImpact: number, dt: number, context: CrewRiskContext = {}): void {
     const targetForward = this.clamp(-telemetry.acceleration / 420, -1, 1);
     const targetLateral = this.clamp(-telemetry.lateralAcceleration / 220, -1, 1);
@@ -42,6 +49,10 @@ export class CrewDynamics {
       this.anger += collisionImpact * TRAFFIC.collisionAnger;
       this.bounce = Math.max(this.bounce, collisionImpact);
     }
+    const curbImpact = context.surface?.curbImpact ?? 0;
+    const bumpImpact = context.surface?.bumpImpact ?? 0;
+    this.anger += curbImpact * SIDEWALK.curbAnger;
+    this.bounce = Math.max(this.bounce, curbImpact, bumpImpact);
     this.bounce *= Math.exp(-5.5 * dt);
 
     const harshLongitudinal = Math.max(0, (Math.abs(telemetry.acceleration) - 240) / 260);
@@ -49,21 +60,26 @@ export class CrewDynamics {
     const harshJerk = telemetry.speed > 20 ? Math.max(0, (Math.abs(telemetry.jerk) - 8000) / 12000) : 0;
     const roughRideRate = harshLongitudinal * 5 + harshLateral * 5.5 + harshJerk * 1.8;
     const speedKmh = telemetry.speed * VEHICLE.kmhPerSpeedUnit;
-    const speedingRate = speedKmh > 40 ? 2 + (speedKmh - 40) * 0.16 : 0;
+    const speedingRate = speedKmh > VEHICLE.angerSpeedThresholdKmh
+      ? 2 + (speedKmh - VEHICLE.angerSpeedThresholdKmh) * 0.16
+      : 0;
     const fastTurnRate = Math.abs(context.steeringInput ?? 0) > 0.15 && speedKmh > 20
       ? 2.5 + (speedKmh - 20) * 0.18
       : 0;
     const residentDelay = context.residentDelaySeconds ?? 0;
     const residentDelayRate = residentDelay > 0 ? 2.5 + Math.min(2, residentDelay * 0.5) : 0;
-    const irritationRate = roughRideRate + speedingRate + fastTurnRate + residentDelayRate;
+    const sidewalkRate = context.surface?.angerRate ?? 0;
+    const irritationRate = roughRideRate + speedingRate + fastTurnRate + residentDelayRate + sidewalkRate;
 
     const causes = [
-      { label: '車速超過 40 km/h', rate: speedingRate },
+      { label: '人行道顛簸', rate: sidewalkRate },
+      { label: `車速超過 ${VEHICLE.angerSpeedThresholdKmh} km/h`, rate: speedingRate },
       { label: '過彎未降至 20 km/h', rate: fastTurnRate },
       { label: '居民拖延交付', rate: residentDelayRate },
       { label: '急煞或車身衝擊', rate: roughRideRate },
     ];
     this.irritationCause = collisionImpact > 0 ? '車輛碰撞'
+      : curbImpact > 0 ? '駛上人行道路緣'
       : potholeImpact > 0
       ? '坑洞衝擊'
       : causes.reduce((strongest, cause) => cause.rate > strongest.rate ? cause : strongest, { label: '狀態平穩', rate: 0 }).label;

@@ -13,6 +13,9 @@ export class SortingPanel {
   private readonly pile: HTMLDivElement;
   private readonly status: HTMLDivElement;
   private readonly heading: HTMLElement;
+  private readonly deliveryLabel: HTMLElement;
+  private readonly deliveryTime: HTMLElement;
+  private readonly deliveryBar: HTMLProgressElement;
   private queue?: SortingQueue;
   private selected?: number;
   private commands: Command[] = [];
@@ -26,13 +29,16 @@ export class SortingPanel {
     this.element.setAttribute('aria-label', '車斗回收物分類');
     const bins = Object.entries(SORTING_DROP_ZONES).map(([id, zone]) => {
       const label = SORTING_TARGETS[id as SortingTarget];
-      const icon = zone.icon ? `<img alt="" draggable="false" data-asset="${recyclingImage(SORTING_ITEMS[zone.icon].asset)}">` : '<span aria-hidden="true">↩</span>';
-      return `<button type="button" data-bin="${id}" class="sorting-bin ${id}" style="left:${zone.x}%;top:${zone.y}%;width:${zone.width}%;height:${zone.height}%" aria-label="${label}${id === 'reject' ? '區' : '收集袋'}"><span class="bag-label">${icon}<span>${label}</span></span></button>`;
+      const icon = zone.icon ? `<img alt="" draggable="false" data-asset="${recyclingImage(SORTING_ITEMS[zone.icon].asset)}">` : '';
+      return `<button type="button" data-bin="${id}" class="sorting-bin ${id}" style="left:${zone.x}%;top:${zone.y}%;width:${zone.width}%;height:${zone.height}%" aria-label="${id === 'reject' ? '非回收物，退回民眾區' : `${label}收集袋`}"><span class="bag-label">${icon}${id === 'reject' ? '<span class="reject-copy"><span>非回收物</span><span>退回民眾</span></span>' : `<span>${label}</span>`}</span></button>`;
     }).join('');
-    this.element.innerHTML = `<div class="sorting-workspace"><header><p class="sorting-progress"></p></header><div class="sorting-scene"><img class="sorting-background" data-asset="${gameArt.background}" alt="俯視回收車斗，下方籃子與上方四個分類袋口" draggable="false">${bins}<div class="sorting-pile" aria-label="正前方籃子裡的散裝回收物"></div></div><div class="sorting-feedback" role="status">等候居民交付</div><p class="sorting-help">拖進袋口 · 或點物品再點袋子</p></div>`;
+    this.element.innerHTML = `<div class="sorting-workspace"><header><p class="sorting-progress"></p><div class="sorting-delivery"><div class="sorting-delivery-labels"><span class="delivery-label"></span><span class="delivery-time"></span></div><progress class="delivery-bar" max="1" value="0" aria-label="下一位民眾放入進度"></progress></div></header><div class="sorting-scene"><img class="sorting-background" data-asset="${gameArt.background}" alt="俯視回收車斗，下方籃子與上方四個分類袋口" draggable="false">${bins}<div class="sorting-pile" aria-label="正前方籃子裡的散裝回收物"></div></div><div class="sorting-feedback" role="status">等候居民交付</div><p class="sorting-help">拖進袋口 · 或點物品再點袋子</p></div>`;
     this.pile = this.element.querySelector('.sorting-pile')!;
     this.status = this.element.querySelector('.sorting-feedback')!;
     this.heading = this.element.querySelector('.sorting-progress')!;
+    this.deliveryLabel = this.element.querySelector('.delivery-label')!;
+    this.deliveryTime = this.element.querySelector('.delivery-time')!;
+    this.deliveryBar = this.element.querySelector('.delivery-bar')!;
     for (const button of Array.from(this.element.querySelectorAll<HTMLButtonElement>('[data-bin]'))) {
       button.addEventListener('click', () => { if (this.selected !== undefined) this.submit(this.selected, button.dataset.bin as SortingTarget); });
     }
@@ -43,7 +49,7 @@ export class SortingPanel {
   }
   public takeCommands(): readonly Command[] { const commands = this.commands; this.commands = []; return commands; }
   public feedback(result: PlacementResult): void {
-    this.status.textContent = { accepted: '已收進袋子', returned: '已交還居民', wrong: '這個袋子不收，換個位置試試', full: '車斗已滿，請放到退回區', missing: '這件物品已處理' }[result];
+    this.status.textContent = { accepted: '已收進袋子', returned: '已退回民眾', wrong: '這個袋子不收，換個位置試試', full: '車斗已滿，請放到「退回民眾」區', missing: '這件物品已處理' }[result];
   }
   public update(cycle?: StationCycle): void {
     const active = Boolean(cycle?.sorting && cycle.departureLocked);
@@ -63,7 +69,13 @@ export class SortingPanel {
       this.items.clear(); this.pile.replaceChildren();
     }
     const waiting = cycle.completedDeliveries < cycle.definition.deliveries.length;
-    this.heading.textContent = `${cycle.definition.name} · ${waiting ? '居民正在交付' : '居民已交付完'}`;
+    const delivery = cycle.getDeliveryProgress();
+    this.heading.textContent = `${cycle.definition.name} · 已交付 ${delivery.completed} / ${delivery.total} 人`;
+    this.deliveryLabel.textContent = delivery.finished ? '✓ 民眾已全部交付完' : `第 ${delivery.nextResident} 位民眾準備放入`;
+    this.deliveryTime.textContent = delivery.finished ? '不會再加入物品' : `約 ${delivery.remainingSeconds.toFixed(1)} 秒`;
+    this.deliveryBar.value = delivery.progress;
+    this.deliveryBar.setAttribute('aria-label', delivery.finished ? '本站民眾已全部交付完' : `第 ${delivery.nextResident} 位民眾放入進度，約 ${delivery.remainingSeconds.toFixed(1)} 秒`);
+    this.element.querySelector('.sorting-delivery')!.classList.toggle('complete', delivery.finished);
     if (!this.queue.pending.length) this.status.textContent = waiting ? '等候下一位居民交付…' : cycle.getStatusText();
     else if (this.status.textContent?.startsWith('等候')) this.status.textContent = '一袋物品倒進籃子，拿起來分揀吧';
     this.renderItems();

@@ -47,6 +47,51 @@
       "lossless": true
     },
     {
+      "source": "assets/recycling/samples-v1/eva-mat/01-blue.png",
+      "output": "assets/optimized/recycling/eva-mat/01-blue.webp",
+      "width": 256,
+      "height": 256,
+      "originalBytes": 646815,
+      "optimizedBytes": 28294,
+      "lossless": true
+    },
+    {
+      "source": "assets/recycling/samples-v1/eva-mat/02-green.png",
+      "output": "assets/optimized/recycling/eva-mat/02-green.webp",
+      "width": 256,
+      "height": 256,
+      "originalBytes": 633168,
+      "optimizedBytes": 27706,
+      "lossless": true
+    },
+    {
+      "source": "assets/recycling/samples-v1/eva-mat/03-yellow.png",
+      "output": "assets/optimized/recycling/eva-mat/03-yellow.webp",
+      "width": 256,
+      "height": 256,
+      "originalBytes": 620496,
+      "optimizedBytes": 27684,
+      "lossless": true
+    },
+    {
+      "source": "assets/recycling/samples-v1/eva-mat/04-pink.png",
+      "output": "assets/optimized/recycling/eva-mat/04-pink.webp",
+      "width": 256,
+      "height": 256,
+      "originalBytes": 611106,
+      "optimizedBytes": 26776,
+      "lossless": true
+    },
+    {
+      "source": "assets/recycling/samples-v1/eva-mat/05-purple.png",
+      "output": "assets/optimized/recycling/eva-mat/05-purple.webp",
+      "width": 256,
+      "height": 256,
+      "originalBytes": 626968,
+      "optimizedBytes": 27352,
+      "lossless": true
+    },
+    {
       "source": "assets/recycling/samples-v1/metal-can/01-standard-soda.png",
       "output": "assets/optimized/recycling/metal-can/01-standard-soda.webp",
       "width": 256,
@@ -90,6 +135,109 @@
       "originalBytes": 569110,
       "optimizedBytes": 29598,
       "lossless": true
+    },
+    {
+      "source": "assets/recycling/samples-v1/non-recyclable/01-toilet-seat.png",
+      "output": "assets/optimized/recycling/non-recyclable/01-toilet-seat.webp",
+      "width": 256,
+      "height": 256,
+      "originalBytes": 690409,
+      "optimizedBytes": 33022,
+      "lossless": true
+    },
+    {
+      "source": "assets/recycling/samples-v1/non-recyclable/02-pillow.png",
+      "output": "assets/optimized/recycling/non-recyclable/02-pillow.webp",
+      "width": 256,
+      "height": 256,
+      "originalBytes": 760272,
+      "optimizedBytes": 36374,
+      "lossless": true
+    },
+    {
+      "source": "assets/recycling/samples-v1/non-recyclable/03-wood.png",
+      "output": "assets/optimized/recycling/non-recyclable/03-wood.webp",
+      "width": 256,
+      "height": 256,
+      "originalBytes": 509283,
+      "optimizedBytes": 23098,
+      "lossless": true
+    },
+    {
+      "source": "assets/recycling/samples-v1/non-recyclable/04-shoe.png",
+      "output": "assets/optimized/recycling/non-recyclable/04-shoe.webp",
+      "width": 256,
+      "height": 256,
+      "originalBytes": 752541,
+      "optimizedBytes": 37004,
+      "lossless": true
+    },
+    {
+      "source": "assets/recycling/samples-v1/non-recyclable/05-backpack.png",
+      "output": "assets/optimized/recycling/non-recyclable/05-backpack.webp",
+      "width": 256,
+      "height": 256,
+      "originalBytes": 769336,
+      "optimizedBytes": 37066,
+      "lossless": true
+    },
+    {
+      "source": "assets/recycling/samples-v1/non-recyclable/06-shoe-red-high-top.png",
+      "output": "assets/optimized/recycling/non-recyclable/06-shoe-red-high-top.webp",
+      "width": 256,
+      "height": 256,
+      "originalBytes": 862809,
+      "optimizedBytes": 21488,
+      "lossless": true,
+      "paletteColors": 128
+    },
+    {
+      "source": "assets/recycling/samples-v1/non-recyclable/07-shoe-green-slip-on.png",
+      "output": "assets/optimized/recycling/non-recyclable/07-shoe-green-slip-on.webp",
+      "width": 256,
+      "height": 256,
+      "originalBytes": 852084,
+      "optimizedBytes": 20688,
+      "lossless": true,
+      "paletteColors": 128
+    },
+    {
+      "source": "assets/recycling/samples-v1/non-recyclable/08-wood-short-log.png",
+      "output": "assets/optimized/recycling/non-recyclable/08-wood-short-log.webp",
+      "width": 256,
+      "height": 256,
+      "originalBytes": 643472,
+      "optimizedBytes": 30292,
+      "lossless": true
+    },
+    {
+      "source": "assets/recycling/samples-v1/non-recyclable/09-wood-flat-plank.png",
+      "output": "assets/optimized/recycling/non-recyclable/09-wood-flat-plank.webp",
+      "width": 256,
+      "height": 256,
+      "originalBytes": 475076,
+      "optimizedBytes": 22172,
+      "lossless": true
+    },
+    {
+      "source": "assets/recycling/samples-v1/non-recyclable/10-backpack-clay-flap.png",
+      "output": "assets/optimized/recycling/non-recyclable/10-backpack-clay-flap.webp",
+      "width": 256,
+      "height": 256,
+      "originalBytes": 832667,
+      "optimizedBytes": 19162,
+      "lossless": true,
+      "paletteColors": 128
+    },
+    {
+      "source": "assets/recycling/samples-v1/non-recyclable/11-backpack-olive-hiking.png",
+      "output": "assets/optimized/recycling/non-recyclable/11-backpack-olive-hiking.webp",
+      "width": 256,
+      "height": 256,
+      "originalBytes": 809307,
+      "optimizedBytes": 22668,
+      "lossless": true,
+      "paletteColors": 128
     },
     {
       "source": "assets/recycling/samples-v1/paper-meal-box/01-rectangular-clamshell.png",
@@ -252,10 +400,19 @@
       "originalBytes": 1580304,
       "optimizedBytes": 270830,
       "lossless": true
+    },
+    {
+      "source": "assets/failure/angry-garbage-worker-v1.png",
+      "output": "assets/optimized/failure/angry-garbage-worker-v1.webp",
+      "width": 512,
+      "height": 512,
+      "originalBytes": 1492990,
+      "optimizedBytes": 241936,
+      "lossless": true
     }
   ],
   "totals": {
-    "originalBytes": 20780667,
-    "optimizedBytes": 1448092
+    "originalBytes": 33369466,
+    "optimizedBytes": 2130874
   }
 }

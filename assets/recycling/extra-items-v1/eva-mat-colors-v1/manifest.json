@@ -1,0 +1,59 @@
+{
+  "assets": [
+    {
+      "name": "01-blue",
+      "color": "藍色",
+      "png": "01-blue.png",
+      "webp": "01-blue.webp",
+      "source": "assets/recycling/extra-items-v1/eva-mat-v1.png",
+      "width": 1254,
+      "height": 1254,
+      "alphaMin": 0,
+      "alphaMax": 255
+    },
+    {
+      "name": "02-green",
+      "color": "綠色",
+      "png": "02-green.png",
+      "webp": "02-green.webp",
+      "source": "/home/ubuntu/.codex/generated_images/01a12ffb-4d3e-7063-8101-c78f2c1ec90d/exec-73d63cbe-ced8-40e7-ac4b-7bc6f308720f.png",
+      "width": 1254,
+      "height": 1254,
+      "alphaMin": 0,
+      "alphaMax": 255
+    },
+    {
+      "name": "03-yellow",
+      "color": "黃色",
+      "png": "03-yellow.png",
+      "webp": "03-yellow.webp",
+      "source": "/home/ubuntu/.codex/generated_images/01a12ffb-4d3e-7063-8101-c78f2c1ec90d/exec-6a3e0486-2ba8-4faf-8c03-c6afe11c08f5.png",
+      "width": 1254,
+      "height": 1254,
+      "alphaMin": 0,
+      "alphaMax": 255
+    },
+    {
+      "name": "04-pink",
+      "color": "粉紅色",
+      "png": "04-pink.png",
+      "webp": "04-pink.webp",
+      "source": "/home/ubuntu/.codex/generated_images/01a12ffb-4d3e-7063-8101-c78f2c1ec90d/exec-99f90672-faa7-41b2-aca8-0909a0b90608.png",
+      "width": 1254,
+      "height": 1254,
+      "alphaMin": 0,
+      "alphaMax": 255
+    },
+    {
+      "name": "05-purple",
+      "color": "紫色",
+      "png": "05-purple.png",
+      "webp": "05-purple.webp",
+      "source": "/home/ubuntu/.codex/generated_images/01a12ffb-4d3e-7063-8101-c78f2c1ec90d/exec-ef04805b-59b5-4766-98c2-e8c6abf6d560.png",
+      "width": 1254,
+      "height": 1254,
+      "alphaMin": 0,
+      "alphaMax": 255
+    }
+  ]
+}

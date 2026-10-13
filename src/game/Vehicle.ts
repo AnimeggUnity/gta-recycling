@@ -47,11 +47,11 @@ export class Vehicle {
     const reversingSteering = this.steering * input.steering < 0;
     const steeringResponse = reversingSteering ? VEHICLE.steeringReversalResponse : VEHICLE.steeringResponse;
     this.steering = this.approach(this.steering, input.steering, steeringResponse * dt);
-    const speedRatio = Math.min(1, Math.abs(longitudinal) / VEHICLE.maxForwardSpeed);
-    const turnRate = this.lerp(VEHICLE.lowSpeedTurnRate, VEHICLE.highSpeedTurnRate, speedRatio);
-    const steeringAuthority = Math.min(1, Math.abs(longitudinal) / 24);
-    const travelDirection = longitudinal < -1 ? -1 : 1;
-    this.rotation += this.steering * turnRate * steeringAuthority * travelDirection * dt;
+    const speedRatio = Math.min(1, Math.abs(longitudinal) * VEHICLE.kmhPerSpeedUnit / VEHICLE.steeringSpeedReferenceKmh);
+    const wheelAngle = this.steering * this.lerp(VEHICLE.lowSpeedSteeringAngle, VEHICLE.highSpeedSteeringAngle, speedRatio);
+    // Bicycle steering: heading changes with distance traveled, never as an in-place spin.
+    // Low-speed wheel lock gives a smaller radius; reversing flips the yaw naturally.
+    this.rotation += longitudinal / VEHICLE.wheelbase * Math.tan(wheelAngle) * dt;
 
     // Preserve world momentum when the body rotates; tire forces then remove side slip.
     const nextForwardX = Math.cos(this.rotation);
@@ -65,10 +65,10 @@ export class Vehicle {
       longitudinal = this.approach(longitudinal, 0, VEHICLE.emergencyBraking * dt);
     } else if (input.throttle > 0) {
       const force = longitudinal < -2 ? VEHICLE.directionChangeBraking : VEHICLE.forwardAcceleration;
-      longitudinal += force * dt;
+      longitudinal += force * Math.min(1, input.throttle) * dt;
     } else if (input.throttle < 0) {
       const force = longitudinal > 2 ? VEHICLE.directionChangeBraking : VEHICLE.reverseAcceleration;
-      longitudinal -= force * dt;
+      longitudinal -= force * Math.min(1, -input.throttle) * dt;
     }
 
     if (input.throttle === 0 || input.brake) {

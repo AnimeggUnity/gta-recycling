@@ -1,9 +1,11 @@
+import { bayBounds, bayGuideY, isCurvedBay } from './CollectionBay';
 import type { CargoItem } from './CargoHold';
 import { CargoHold } from './CargoHold';
 import type { RoadGraph, RoutePoint } from './RoadGraph';
 import type { StationObservation, StationDefinition } from './StationCycle';
 import { StationCycle } from './StationCycle';
-import { MISSION, NAVIGATION, VEHICLE } from '../config/balance';
+import type { TossStats } from './TossQueue';
+import { CURVED_BAY, MISSION, NAVIGATION, VEHICLE } from '../config/balance';
 
 export type RouteStation = Readonly<{
   id: string;
@@ -15,6 +17,7 @@ export type RouteStation = Readonly<{
   deliveries: readonly CargoItem[];
   residentDelays?: readonly number[];
   sortingBatches?: readonly (readonly string[])[];
+  garbage?: boolean;
 }>;
 
 export type StationResult = Readonly<{
@@ -24,6 +27,7 @@ export type StationResult = Readonly<{
   arrivalSeconds: number;
   departureSeconds: number;
   delaySeconds: number;
+  tossing?: TossStats;
 }>;
 
 export type NavigationSnapshot = Readonly<{
@@ -40,6 +44,7 @@ export type MissionSettlement = Readonly<{
   totalDelaySeconds: number;
   peakAnger: number;
   stationCount: number;
+  tossing?: TossStats;
 }>;
 
 export type MissionFailure = Readonly<{ reason: 'crew-anger' | 'collision'; collisionLabel?: string; totalSeconds: number; stationCount: number }>;
@@ -113,6 +118,7 @@ export class RouteMission {
       arrivalSeconds: arrival,
       departureSeconds: this.elapsedSeconds,
       delaySeconds: arrival - station.scheduledOffsetSeconds,
+      ...(cycle.tossing ? { tossing: cycle.tossing.stats } : {}),
     });
     this.currentStationIndex += 1;
     this.arrivalSeconds = undefined;
@@ -123,7 +129,16 @@ export class RouteMission {
   public getNavigation(position: RoutePoint): NavigationSnapshot {
     const station = this.activeStation;
     if (this.ended || !station) return { path: [], remainingMeters: 0, etaSeconds: 0, scheduledTime: '—', delaySeconds: 0 };
-    const path = this.roads.findPath(position, station.stop);
+    let path = [...this.roads.findPath(position, station.stop)];
+    if (isCurvedBay(station.stop) && position.x <= station.stop.x) {
+      const entryX = bayBounds(station.stop).left;
+      const guideStart = Math.max(entryX, position.x);
+      path = position.x < entryX
+        ? [...this.roads.findPath(position, { x: entryX, y: bayGuideY(station.stop, entryX) })]
+        : [position];
+      for (let x = guideStart; x < station.stop.x; x += CURVED_BAY.sampleSpacing) path.push({ x, y: bayGuideY(station.stop, x) });
+      path.push(station.stop);
+    }
     const distance = this.roads.pathDistance(path);
     const arrived = this.arrivalSeconds !== undefined;
     const etaSeconds = arrived ? 0 : distance / (NAVIGATION.cruiseSpeedKmh / VEHICLE.kmhPerSpeedUnit);
@@ -137,6 +152,12 @@ export class RouteMission {
     };
   }
 
+  public getTossStats(): TossStats {
+    const completed = this.results.reduce((sum, result) => ({ hits: sum.hits + (result.tossing?.hits ?? 0), misses: sum.misses + (result.tossing?.misses ?? 0), score: sum.score + (result.tossing?.score ?? 0) }), { hits: 0, misses: 0, score: 0 });
+    const active = this.activeCycle?.tossing?.stats;
+    return { hits: completed.hits + (active?.hits ?? 0), misses: completed.misses + (active?.misses ?? 0), score: completed.score + (active?.score ?? 0) };
+  }
+
   public getSettlement(): MissionSettlement | undefined {
     if (!this.complete) return undefined;
     const totalDelaySeconds = this.results.reduce((sum, result) => sum + Math.max(0, result.delaySeconds), 0);
@@ -147,6 +168,7 @@ export class RouteMission {
       totalDelaySeconds,
       peakAnger: this.peakAnger,
       stationCount: this.results.length,
+      ...(this.stations.some(station => station.garbage) ? { tossing: this.getTossStats() } : {}),
     };
   }
 

@@ -6,5 +6,5 @@ export const SORTING_DROP_ZONES: Readonly<Record<SortingTarget, Readonly<{ x: nu
   'paper-container': { x: 16, y: 34, width: 29, height: 17, icon: 'paper-meal-box-rectangular-clamshell' },
   metal: { x: 55, y: 12, width: 29, height: 17, icon: 'metal-can-standard-soda' },
   paper: { x: 56, y: 34, width: 28, height: 17, icon: 'crumpled-paper-round-ball' },
-  reject: { x: 77, y: 91, width: 21, height: 8 },
+  reject: { x: 64, y: 89, width: 34, height: 10 },
 };

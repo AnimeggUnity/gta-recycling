@@ -16,7 +16,7 @@ const definition = {
 describe('StationCycle', () => {
   it('collects multiple resident batches but never leaves before player sorting and crew return', () => {
     const cargo = new CargoHold();
-    const station = new StationCycle({ ...definition, sortingBatches: [['pet-bottle-tall-ribbed', 'used-tissue-soft-wad'], ['metal-can-standard-soda']] }, cargo);
+    const station = new StationCycle({ ...definition, sortingBatches: [['pet-bottle-tall-ribbed', 'non-recyclable-toilet-seat'], ['metal-can-standard-soda']] }, cargo);
     const stopped = { vehicleX: 100, vehicleY: 100, vehicleSpeed: 0, attemptingToDrive: true };
     for (let i = 0; i < 1800; i++) station.update(stopped, 1 / 60);
     expect(station.completedDeliveries).toBe(2);
@@ -32,6 +32,40 @@ describe('StationCycle', () => {
     expect(station.phase).toBe('ready');
     expect(cargo.volume).toBe(6);
     expect(station.sorting!.returned).toBe(1);
+  });
+
+  it('reports the actual next basket insertion, resets for the next resident, and ends after the final batch', () => {
+    const station = new StationCycle({ ...definition, residentDelays: [1, 0], sortingBatches: [['non-recyclable-toilet-seat'], ['metal-can-standard-soda']] }, new CargoHold());
+    const stopped = { vehicleX: 100, vehicleY: 100, vehicleSpeed: 0, attemptingToDrive: false };
+    station.update(stopped, 0.1); station.update(stopped, 0.8);
+    expect(station.getDeliveryProgress()).toMatchObject({ completed: 0, total: 2, progress: 0, nextResident: 1, finished: false });
+    expect(station.getDeliveryProgress().remainingSeconds).toBeCloseTo(2.75);
+    let previous = 0;
+    while (station.completedDeliveries === 0) {
+      station.update(stopped, 1 / 60);
+      const progress = station.getDeliveryProgress();
+      if (progress.completed === 0) { expect(progress.progress).toBeGreaterThanOrEqual(previous); previous = progress.progress; }
+    }
+    expect(station.sorting?.pending).toHaveLength(1);
+    expect(station.getDeliveryProgress()).toMatchObject({ completed: 1, total: 2, progress: 0, nextResident: 2 });
+    expect(station.getDeliveryProgress().remainingSeconds).toBeCloseTo(2.25);
+    while (station.completedDeliveries < 2) station.update(stopped, 1 / 60);
+    expect(station.getDeliveryProgress()).toEqual({ completed: 2, total: 2, progress: 1, remainingSeconds: 0, finished: true });
+    for (let i = 0; i < 60; i++) station.update(stopped, 1 / 60);
+    expect(station.getDeliveryProgress().finished).toBe(true);
+  });
+
+  it('includes worker slowdown in remaining delivery time without slowing resident arrival', () => {
+    const station = new StationCycle(definition, new CargoHold());
+    const stopped = { vehicleX: 100, vehicleY: 100, vehicleSpeed: 0, attemptingToDrive: false, crewEfficiency: 0.5 };
+    station.update(stopped, 0.1); station.update(stopped, 0.8);
+    expect(station.getDeliveryProgress().remainingSeconds).toBeCloseTo(3.95);
+    station.update(stopped, 0.25);
+    expect(station.getDeliveryProgress().remainingSeconds).toBeCloseTo(3.7);
+    station.update(stopped, 0.3); // Resident arrival finishes at normal speed.
+    expect(station.getDeliveryProgress().remainingSeconds).toBeCloseTo(3.4);
+    station.update(stopped, 0.25); // Half-speed worker, actual quarter-second remaining reduction.
+    expect(station.getDeliveryProgress().remainingSeconds).toBeCloseTo(3.15);
   });
 
   it('requires the right-side bay and east-facing heading for every configured stop', () => {
@@ -54,10 +88,10 @@ describe('StationCycle', () => {
     const stopped = { vehicleX: 100, vehicleY: 100, vehicleSpeed: 0, attemptingToDrive: false, crewEfficiency: 0.55 };
     station.update(stopped, 0.1);
     station.update(stopped, 0.8);
-    station.update(stopped, 1.2);
-    expect(station.residentDelaySeconds).toBe(0);
     station.update(stopped, 0.6);
-    expect(station.residentDelaySeconds).toBeCloseTo(0.25);
+    expect(station.residentDelaySeconds).toBe(0);
+    station.update(stopped, 0.3);
+    expect(station.residentDelaySeconds).toBeCloseTo(0.125);
     expect(station.getResidents()[0].handoffProgress).toBe(1);
   });
   it('requires a complete stop before starting service', () => {
@@ -99,7 +133,7 @@ describe('StationCycle', () => {
       station.update({ vehicleX: 100, vehicleY: 100, vehicleSpeed: 0, attemptingToDrive: false }, 0.8);
     }
 
-    for (let i = 0; i < 600; i += 1) {
+    for (let i = 0; i < 300; i += 1) {
       normal.update({ vehicleX: 100, vehicleY: 100, vehicleSpeed: 0, attemptingToDrive: false, crewEfficiency: 1 }, 1 / 60);
       angry.update({ vehicleX: 100, vehicleY: 100, vehicleSpeed: 0, attemptingToDrive: false, crewEfficiency: 0.55 }, 1 / 60);
     }

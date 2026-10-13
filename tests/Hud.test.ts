@@ -89,9 +89,9 @@ describe('HUD presentation', () => {
     expect(hud.element.innerHTML).toContain('怒氣 <b>55</b>');
   });
 
-  it('clamps meter widths and clears the overspeed warning at 40 km/h', () => {
+  it('clamps meter widths and clears the anger warning at 35 km/h', () => {
     const { hud } = mountHud();
-    hud.update({ ...data, speed: 40 / 0.35, crewAnger: 150, cargoVolume: 200 });
+    hud.update({ ...data, speed: 35 / 0.35, crewAnger: 150, cargoVolume: 200 });
     expect(hud.element.innerHTML).not.toContain('speed-warning');
     expect(hud.element.innerHTML.match(/width:100%/g)).toHaveLength(2);
   });
