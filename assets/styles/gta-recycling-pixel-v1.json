@@ -1,0 +1,39 @@
+{
+  "id": "gta-recycling-pixel-v1",
+  "version": 1,
+  "sources": [
+    "assets/recycling/samples-v1/prompts.json",
+    "assets/recycling/backgrounds/truck-bed-sorting-v1.md",
+    "assets/failure/README.md",
+    "assets/failure/angry-garbage-worker-v1.md"
+  ],
+  "generator": "built-in image_gen",
+  "presets": {
+    "inventory": {
+      "transparentBackground": true,
+      "referenceImages": [
+        "assets/recycling/samples-v1/metal-can/01-standard-soda.png"
+      ],
+      "prompt": "Style: authentic coarse 64x64 logical-pixel art enlarged to the output canvas, crisp large aligned square-pixel clusters and hard stair-step edges, deliberately low-detail game-readable silhouette, NOT a smooth high-resolution painting with pixel effects. View: consistent three-quarter overhead at about 65 degrees with enough side visible to identify the material. Upper-left light. Limited muted palette: dark teal #203739 outlines, cream #e6e5c9, pale cyan #9bc5c3, blue #315b78, kraft brown #ad865a, silver #a9b9b5, cool white #e2e9de. Flat 2-3 shade clusters per material, no gradients or antialiasing. Center exactly ONE entire object, 15 percent transparent margins, separate object silhouette, fully opaque color clusters inside object. No text, labels, logos, brands, watermark, floor, ground shadow, grid, scene, extra objects or sprite sheet. Long objects should have their long axis vertical."
+    },
+    "environment": {
+      "transparentBackground": false,
+      "source": "assets/recycling/backgrounds/truck-bed-sorting-v1.md",
+      "prompt": "Crisp visibly square pixels, limited subdued teal-blue, beige, off-white and muted green palette, dark pixel outlines and chunky stepped highlights. Retro 1990s 2D game environment. Strict 90-degree bird's-eye orthographic view, no isometric or side perspective. Uniform soft daylight rendered with pixel shading. No smooth painting, photorealism, text, logos or UI. Opaque background."
+    },
+    "character": {
+      "transparentBackground": true,
+      "referenceImages": [
+        "assets/failure/angry-worker-v1.png"
+      ],
+      "source": "assets/failure/README.md",
+      "prompt": "Crisp large square pixel clusters, stepped dark outlines, limited muted teal/navy/cream palette and strong readable highlights, 1990s pixel game splash-art, not photorealism or smooth painted concept art. Square canvas with full subject contained and small transparent padding. Actual transparent alpha background, no checkerboard, no text, no logo, no scenery, no UI. Preserve existing Taiwanese collection-worker identity, dark teal uniform, orange high-visibility vest with cream reflective bands and work gloves. Choose camera and pose for the requested use; dramatic foreshortening is for failure splash-art only."
+    }
+  },
+  "notes": [
+    "64x64 describes logical-pixel appearance, not actual generated image dimensions. Validate small-size readability; do not claim strict grid calibration.",
+    "Use references for style only unless explicitly editing.",
+    "Warnings, labels, meters and red borders belong to UI rather than generated art.",
+    "For hazard bags use a torn opening with opaque contents instead of making the whole bag translucent."
+  ]
+}

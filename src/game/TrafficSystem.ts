@@ -31,16 +31,20 @@ function bodyYExtent(body: CollisionBody): number {
 export class TrafficSystem {
   public elapsedSeconds = 0;
   public readonly vehicles: TrafficVehicle[];
-  public constructor(vehicles?: TrafficVehicle[]) {
+  public constructor(vehicles?: TrafficVehicle[], random: () => number = Math.random) {
+    const draw = () => Math.max(0, Math.min(1 - Number.EPSILON, random()));
     this.vehicles = vehicles ?? [...STREET.eastboundLanes, ...STREET.westboundLanes].flatMap((y, lane) =>
       Array.from({ length: TRAFFIC.vehiclesPerLane }, (_, index): TrafficVehicle => {
-        const kind = (index + lane) % 3 === 0 ? 'scooter' : 'car';
-        const x = TRAFFIC.initialSpawnX + index * TRAFFIC.spawnSpacing + lane * 60;
-        const desiredSpeed = 72 + ((index * 13 + lane * 7) % 32);
+        const kind = draw() < TRAFFIC.scooterChance ? 'scooter' : 'car';
+        // Each vehicle stays in its own spawn slot; even opposite jitter extremes
+        // leave enough space for two sedans and the following gap.
+        const x = TRAFFIC.initialSpawnX + index * TRAFFIC.spawnSpacing + lane * 60
+          + (draw() * 2 - 1) * TRAFFIC.initialPositionJitter;
+        const desiredSpeed = TRAFFIC.minDesiredSpeed + Math.floor(draw() * (TRAFFIC.maxDesiredSpeed - TRAFFIC.minDesiredSpeed + 1));
         return { id: `traffic-${lane}-${index}`, kind, x, previousX: x, y, direction: lane < 2 ? 1 : -1,
           speed: desiredSpeed, desiredSpeed, halfLength: kind === 'car' ? TRAFFIC.sedanHalfLength : TRAFFIC.scooterHalfLength,
           halfWidth: kind === 'car' ? TRAFFIC.sedanHalfWidth : TRAFFIC.scooterHalfWidth,
-          color: [0xc5c9b0, 0x688f9b, 0xbd735f, 0x7c9386][(index + lane) % 4], yieldSeconds: 0 };
+          color: TRAFFIC.vehicleColors[Math.floor(draw() * TRAFFIC.vehicleColors.length)], yieldSeconds: 0 };
       }));
   }
 
@@ -56,7 +60,7 @@ export class TrafficSystem {
     }
   }
 
-  public update(dt: number, player: CollisionBody, merging?: CollisionBody): void {
+  public update(dt: number, player: CollisionBody, merging?: CollisionBody, additional: readonly CollisionObstacle[] = []): void {
     if (dt <= 0) return;
     this.elapsedSeconds += dt;
     // Plan all movements from the same snapshot so queue behavior is order-independent.
@@ -68,7 +72,7 @@ export class TrafficSystem {
         if (ahead > 0) gap = Math.min(gap, ahead - vehicle.halfLength - other.halfLength - TRAFFIC.followingGap);
       }
       // An automatic bay turn requests clearance from vehicles approaching behind.
-      for (const target of merging ? [player, merging] : [player]) {
+      for (const target of [...(merging ? [player, merging] : [player]), ...additional]) {
         if (Math.abs(target.y - vehicle.y) < bodyYExtent(target) + vehicle.halfWidth + 5) {
           const ahead = (target.x - vehicle.x) * vehicle.direction;
           if (ahead > 0) gap = Math.min(gap, ahead - vehicle.halfLength - bodyXExtent(target) - TRAFFIC.followingGap);
@@ -97,7 +101,7 @@ export class TrafficSystem {
       vehicle.previousX = vehicle.x;
       Object.assign(vehicle, motions[index]);
       // A stationary collection truck cannot be pushed by passing traffic.
-      if (intersectBodies(trafficBody(vehicle), player)) {
+      if ([player, ...additional].some(target => intersectBodies(trafficBody(vehicle), target))) {
         vehicle.x = vehicle.previousX;
         vehicle.speed = 0;
       }
@@ -106,7 +110,7 @@ export class TrafficSystem {
       if (vehicle.x >= -150 && vehicle.x <= WORLD.width + 150) continue;
       const spawnX = vehicle.direction > 0 ? -100 : WORLD.width + 100;
       const spawnBody = { ...trafficBody(vehicle), x: spawnX };
-      const blocked = intersectBodies(spawnBody, player) || this.vehicles.some((other) => other.id !== vehicle.id && other.y === vehicle.y && Math.abs(other.x - spawnX) < vehicle.halfLength + other.halfLength + TRAFFIC.followingGap);
+      const blocked = [player, ...additional].some(target => intersectBodies(spawnBody, target)) || this.vehicles.some((other) => other.id !== vehicle.id && other.y === vehicle.y && Math.abs(other.x - spawnX) < vehicle.halfLength + other.halfLength + TRAFFIC.followingGap);
       if (!blocked) { vehicle.x = spawnX; vehicle.previousX = spawnX; vehicle.speed = 0; }
       else vehicle.speed = 0;
     }

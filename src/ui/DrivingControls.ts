@@ -2,6 +2,8 @@ import Phaser from 'phaser';
 import type { DriverInput } from '../game/Vehicle';
 import { resolvePriorityAxis } from '../game/InputResolver';
 import { touchInput } from './TouchInputState';
+import { hornInput } from './HornInput';
+import { hornSound } from './HornSound';
 
 export class DrivingControls {
   private readonly up: Phaser.Input.Keyboard.Key;
@@ -13,6 +15,7 @@ export class DrivingControls {
   private readonly a: Phaser.Input.Keyboard.Key;
   private readonly d: Phaser.Input.Keyboard.Key;
   private readonly brake: Phaser.Input.Keyboard.Key;
+  private readonly horn: Phaser.Input.Keyboard.Key;
 
   public constructor(keyboard: Phaser.Input.Keyboard.KeyboardPlugin) {
     const keys = Phaser.Input.Keyboard.KeyCodes;
@@ -26,6 +29,8 @@ export class DrivingControls {
     this.a = keyboard.addKey(keys.A);
     this.d = keyboard.addKey(keys.D);
     this.brake = keyboard.addKey(keys.SPACE);
+    this.horn = keyboard.addKey(keys.H);
+    this.horn.on('down', () => hornSound.unlock());
   }
 
   public read(): DriverInput {
@@ -38,6 +43,11 @@ export class DrivingControls {
 
   public reset(): void {
     touchInput.reset();
-    for (const key of [this.up, this.down, this.left, this.right, this.w, this.s, this.a, this.d, this.brake]) key.reset();
+    hornInput.reset();
+    for (const key of [this.up, this.down, this.left, this.right, this.w, this.s, this.a, this.d, this.brake, this.horn]) key.reset();
+  }
+  public takeHorn(): boolean {
+    const touch = hornInput.take();
+    return Phaser.Input.Keyboard.JustDown(this.horn) || touch;
   }
 }

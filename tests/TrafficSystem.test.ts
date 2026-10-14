@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { TRAFFIC, WORLD } from '../src/config/balance';
+import { STREET, TRAFFIC, WORLD } from '../src/config/balance';
+import { seededRandom } from './helpers/seededRandom';
 import { intersectBodies, type CollisionBody } from '../src/game/CollisionWorld';
 import { signalColor, trafficBody, TRAFFIC_SIGNALS, TrafficSystem, type TrafficVehicle } from '../src/game/TrafficSystem';
 
@@ -10,6 +11,35 @@ function car(overrides: Partial<TrafficVehicle> = {}): TrafficVehicle {
 }
 
 describe('traffic and signals', () => {
+  it('replays identical random traffic with the same seed and varies it with another seed', () => {
+    const first = new TrafficSystem(undefined, seededRandom(42));
+    expect(new TrafficSystem(undefined, seededRandom(42)).vehicles).toEqual(first.vehicles);
+    const different = new TrafficSystem(undefined, seededRandom(1234));
+    for (const property of ['x', 'kind', 'color', 'desiredSpeed'] as const) {
+      expect(different.vehicles.map(v => v[property])).not.toEqual(first.vehicles.map(v => v[property]));
+    }
+  });
+  it.each([0, 1, 42, 1234, 9999])('keeps randomized spawn positions safe and speeds bounded for seed %i', seed => {
+    const traffic = new TrafficSystem(undefined, seededRandom(seed));
+    const lanes = [...STREET.eastboundLanes, ...STREET.westboundLanes];
+    expect(traffic.vehicles).toHaveLength(lanes.length * TRAFFIC.vehiclesPerLane);
+    for (const [lane, y] of lanes.entries()) {
+      const vehicles = traffic.vehicles.filter(v => v.y === y);
+      for (const [index, v] of vehicles.entries()) {
+        const center = TRAFFIC.initialSpawnX + index * TRAFFIC.spawnSpacing + lane * 60;
+        expect(Math.abs(v.x - center)).toBeLessThanOrEqual(TRAFFIC.initialPositionJitter);
+        expect(v.previousX).toBe(v.x);
+        expect(v.desiredSpeed).toBeGreaterThanOrEqual(TRAFFIC.minDesiredSpeed);
+        expect(v.desiredSpeed).toBeLessThanOrEqual(TRAFFIC.maxDesiredSpeed);
+        if (index > 0) expect(v.x - vehicles[index - 1].x).toBeGreaterThanOrEqual(v.halfLength + vehicles[index - 1].halfLength + TRAFFIC.followingGap);
+      }
+    }
+  });
+  it('keeps custom vehicle fixtures unchanged without consuming randomness', () => {
+    const vehicles = [car()];
+    const traffic = new TrafficSystem(vehicles, () => { throw new Error('Unexpected random draw'); });
+    expect(traffic.vehicles).toBe(vehicles);
+  });
   it('cycles green, yellow and red on fixed-step elapsed time', () => {
     const signal = TRAFFIC_SIGNALS[0];
     expect(signalColor(signal, 0)).toBe('green');
@@ -72,7 +102,7 @@ describe('traffic and signals', () => {
   });
 
   it('keeps the full car and scooter fleet separated across red-light cycles and respawns', () => {
-    const traffic = new TrafficSystem();
+    const traffic = new TrafficSystem(undefined, seededRandom(42));
     for (let tick = 0; tick < 9000; tick += 1) {
       traffic.update(1 / 60, away);
       if (tick % 60 !== 0) continue;

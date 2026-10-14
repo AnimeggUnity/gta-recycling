@@ -4,6 +4,24 @@ import sharp from 'sharp';
 import { SORTING_ITEMS } from '../src/config/sorting';
 
 describe('optimized game artwork', () => {
+  it('preserves genuine transparency in the provided civilian failure illustration', async () => {
+    const image = sharp(await readFile(new URL('../assets/optimized/failure/angry-woman-throw-v1.webp', import.meta.url)));
+    const metadata = await image.metadata();
+    expect(metadata.width).toBe(512); expect(metadata.height).toBe(512);
+    expect(metadata.hasAlpha).toBe(true);
+    const { channels } = await image.stats();
+    expect(channels[3].min).toBe(0); expect(channels[3].max).toBe(255);
+  });
+  it('ships all three toss bags as small transparent sprites', async () => {
+    for (const name of ['normal-bag', 'hazard-bag-gas', 'hazard-bag-battery']) {
+      const image = sharp(await readFile(new URL(`../assets/optimized/toss/${name}.webp`, import.meta.url)));
+      const metadata = await image.metadata();
+      expect(metadata.width).toBe(256); expect(metadata.height).toBe(256);
+      expect(metadata.hasAlpha).toBe(true);
+      const { channels } = await image.stats();
+      expect(channels[3].min).toBe(0); expect(channels[3].max).toBe(255);
+    }
+  });
   it('keeps all active images and archived tissues small and genuinely transparent', async () => {
     const manifest = JSON.parse(await readFile(new URL('../assets/optimized/manifest.json', import.meta.url), 'utf8'));
     const items = manifest.entries.filter((entry: { output: string }) => entry.output.includes('/recycling/'));

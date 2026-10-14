@@ -384,6 +384,51 @@
       "lossless": false
     },
     {
+      "source": "assets/toss/hazards-v1/gas-canister.png",
+      "output": "assets/optimized/toss/gas-canister.webp",
+      "width": 256,
+      "height": 256,
+      "originalBytes": 714452,
+      "optimizedBytes": 32890,
+      "lossless": true
+    },
+    {
+      "source": "assets/toss/hazards-v1/lithium-battery.png",
+      "output": "assets/optimized/toss/lithium-battery.webp",
+      "width": 256,
+      "height": 256,
+      "originalBytes": 790252,
+      "optimizedBytes": 32260,
+      "lossless": true
+    },
+    {
+      "source": "assets/toss/hazards-v1/hazard-bag-gas.png",
+      "output": "assets/optimized/toss/hazard-bag-gas.webp",
+      "width": 256,
+      "height": 256,
+      "originalBytes": 824740,
+      "optimizedBytes": 41166,
+      "lossless": true
+    },
+    {
+      "source": "assets/toss/hazards-v1/hazard-bag-battery.png",
+      "output": "assets/optimized/toss/hazard-bag-battery.webp",
+      "width": 256,
+      "height": 256,
+      "originalBytes": 833740,
+      "optimizedBytes": 43180,
+      "lossless": true
+    },
+    {
+      "source": "assets/toss/hazards-v1/normal-bag.png",
+      "output": "assets/optimized/toss/normal-bag.webp",
+      "width": 256,
+      "height": 256,
+      "originalBytes": 799812,
+      "optimizedBytes": 39702,
+      "lossless": true
+    },
+    {
       "source": "assets/failure/police-v1.png",
       "output": "assets/optimized/failure/police-v1.webp",
       "width": 512,
@@ -409,10 +454,19 @@
       "originalBytes": 1492990,
       "optimizedBytes": 241936,
       "lossless": true
+    },
+    {
+      "source": "assets/failure/angry-woman-throw-v1.png",
+      "output": "assets/optimized/failure/angry-woman-throw-v1.webp",
+      "width": 512,
+      "height": 512,
+      "originalBytes": 1473713,
+      "optimizedBytes": 227962,
+      "lossless": true
     }
   ],
   "totals": {
-    "originalBytes": 33369466,
-    "optimizedBytes": 2130874
+    "originalBytes": 38806175,
+    "optimizedBytes": 2548034
   }
 }

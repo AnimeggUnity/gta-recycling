@@ -28,6 +28,18 @@ function mountHud(device = 'desktop') {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('HUD presentation', () => {
+  it.each(['garbage', 'recycling'] as const)('uses the supplied civilian illustration for a missed stop in %s mode', mode => {
+    const { hud, nodes, restart } = mountHud();
+    const failed = { ...data, mode, failure: { reason: 'missed-stop' as const, missedStationName: '新生南路收運站', totalSeconds: 60, stationCount: 1 } };
+    hud.update(failed); hud.update(failed);
+    expect(nodes[1].className).toContain('citizen-failed');
+    expect(nodes[1].innerHTML).toContain('angry-woman-throw-v1.webp');
+    expect(nodes[1].innerHTML).toContain('過站不停，民眾暴怒');
+    expect(nodes[1].innerHTML).toContain('新生南路收運站');
+    expect(nodes[1].innerHTML).not.toContain('怒氣達到 100%');
+    expect(nodes[1].innerHTML).not.toContain('police-v1.webp');
+    expect(restart).toHaveBeenCalledTimes(1);
+  });
   it('uses the police illustration and traffic accident message for collisions', () => {
     const { hud, nodes } = mountHud();
     hud.update({ ...data, failure: { reason: 'collision', collisionLabel: '機車', totalSeconds: 5, stationCount: 0 } });

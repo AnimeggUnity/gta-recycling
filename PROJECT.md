@@ -331,3 +331,66 @@ npm run build
 
 - 依使用者指示建立私有儲存庫 `https://github.com/AnimeggUnity/gta-recycling`，以 main 保存目前遊戲程式、素材、生成提示、測試、專案紀錄與既有 Git 歷史。
 - 新增 README.md 作為專案入口、CHANGELOG.md 彙整近期更新；詳細測試與 Cloudflare staging 部署紀錄保留於本檔。node_modules、dist、.wrangler 及環境變數檔維持忽略。
+
+
+### 甩袋手感與危險袋素材整合（2026-10-14）
+
+- 共用生圖樣式保存於 assets/styles/gta-recycling-pixel-v1.json（物品、場景、人物 presets），使用方式與來源位於同目錄 README；四款危險物與一款一般袋的完整生成 prompt、原始 PNG、來源及 alpha 記錄於 assets/toss/hazards-v1/。內建 image_gen 使用既有金屬罐作畫風參考，鋰電池袋與一般袋以氣瓶袋為編輯目標。
+- Stage 1：投入口上下與左右容錯改為 0.24／0.535／0.24；45ms 內極小位移的放手幀不稀釋速度，長停頓仍清除動量。力道條按袋重計算實際 launchSpeed，以綠色表示甜蜜區，飛行時保留放手位置。階段驗證 check、210 項測試、build 通過。
+- Stage 2：首包一般袋、後續 25% 危險物；維持預設 TossQueue 的 random 呼叫數與順序。向下滑與按鈕退回均經固定步長指令核對 queue／bagId，加 100 分且不載入車斗；危險物命中扣 100 分（最低 0）、計入一次 explosion、不載入車斗，由 StationCycle 消費一次怒氣事件。
+- CrewDynamics 經 fixed step 接受立即怒氣 +35 並保留原因至回饋結束，Scene 更新後立即核對失敗。甩袋面板可見即時怒氣、原因與爆鳴文字／震動，減少動態設定停用 DOM 震動。沒有新增爆鳴音效。
+- 三款袋子使用最近鄰 256px 透明無損 WebP，出車時預載；氣瓶與行動電源單圖只作參考，不預載。教學與 HUD 將含退回的 hits 標示為成功處理，避免誤稱入車數。
+- check、218 項測試、build 通過。瀏覽器原生 pointer 搭配受控事件時間驗證按鈕退回、向下滑退回、向上誤投扣分／怒氣、車斗不變、pointercancel／blur 及下一包解除鎖定；場景測試狀態僅由開發瀏覽器注入，未加入產品測試入口。
+- Chromium 1280×900、390×844、320×568、844×390 確認面板全幅在可視區內、44px 退回按鈕可操作、圖片解碼與無頁面例外。預覽保存在本次 Codex visualizations 目錄。
+- 本次未實作 Stage 3 的民眾倒數／分類壓力或 Stage 4 違停喇叭，未部署／變更正式路由。
+
+
+### 起始車流亂數（2026-10-14）
+
+- TrafficSystem 建構時抽取車種（機車機率 1/3）、四種車色、目標速度 72～103 與起始位置 ±200 單位。四條車道各 8 輛、行進方向及初始格距 700 不變；最差偏移组合仍有 300 單位中心距，超過兩輛轎車長度與跟車距離。
+- 只在初始化抽取，update 和畫面刷新不重新抽取。constructor 的第二個 optional random 參數提供可重播測試；指定自訂 vehicles 不消耗亂數。
+- 測試使用固定種子，涵蓋配置重播、不同種子變化、起始安全距離及速度界限，以及多組種子的三站自動駕駛。check、228 項測試、build 通過。未部署。
+
+
+### 每趟一次隨機違停與喇叭（2026-10-14）
+
+- 依使用者最新指示，取代原規格第二、三站各一輛車的設計：三站中均勻抽選一站，只呼叫一次 random、只生成一輛，離開後不再生成。BayViolationSystem 為純邏輯模組，常數集中於 balance.ts，固定步長更新，渲染沿用 TrafficArt 的既有轎車畫法。
+- parked → reacting（0.55s）→ departing → cleared；喇叭有效距離 420，冷卻 0.4s，双黃燈 0.35s 交替。駛離沿 bayGuideY 曲線，遇車等待；TrafficSystem 的額外障礙物參數讓正常車流等候出灣車。
+- 停靠框仍有違停車時 StationCycle 不開始收運；車輛駛離框後解除，車體持續作為 CollisionObstacle 至 cleared，直接碰撞維持任務失敗。
+- 鍵盤 H 的 JustDown 與觸控 HornInput 單次指令於 fixed step 消費，觸控喇叭 pointerdown 不占用油門／方向盤的 pointer；重置與切換操作模式不保留待處理喇叭；pointercancel 清除相應的油門／方向盤指標。Web Audio 合成短雙音喇叭，無需新圖片或音效檔。
+- 簡單模式未暫停且靠近 parked 車時自動按喇叭；避免停靠／碰撞，兩種收運模式均驗證三種抽選站完整三站路線，以及出灣車與一般車流不重疊。
+- check、246 項測試、build 通過。尚未部署，使用者先前要求暫停部署的指示仍有效。
+
+- Chromium 實際 H 按鍵及三指觸控驗證：按喇叭時油門與方向盤持續、左右換向、分別放手、touchCancel 清理，手機 390×844／320×568／844×390 的 44px 喇叭可點擊；簡單模式自動觸發，無頁面例外。桌面與手機預覽存於本次 Codex visualizations 目錄。
+
+
+### 本次發布（2026-10-14）
+
+- 使用者重新授權「部署」，先前暫停已解除。wrangler 4.149.0 dry-run 通過，使用 npm run deploy:staging 重新建置並更新既有 gta-recycling-staging，版本 fee21bbf-615d-4ea6-9121-635c6de9bdd7。包含甩袋手感、三款像素袋、危險物退回／計分／怒氣、起始車流亂數，以及每趟一次隨機違停與喇叭。
+- 既有 https://gtar.0928029003.org/ 線上引用 index-BbJDIYGR.js 與 index-DDyd4Ic1.css，45 個線上檔案（HTML、JS、CSS、全部圖片）SHA-256 和 dist 逐位元一致。沒有改動 DNS、routes 或 Nginx，也未同步或刪除 /var/www 的素材草稿。
+- Chromium 實際開啟手機垃圾車與桌面回收車：全部素材準備完成、明確開始、canvas 顯示、喇叭控制可見且無頁面例外。功能階段已通過 check、246 項測試與 build，發布流程建置再次通過。
+- 發布前版本 ddf37670-097d-4ade-a4b8-7b1b5581f3b7 保留供回滾；目前沒有執行回滾。
+
+
+### 過站不停與提供的民眾插圖（2026-10-14，本機待發布）
+
+- 使用者提供 /var/www/gta-recycling/asset-drafts/angry-citizen/angry-woman-throw-v1.png；原 PNG 與來源提示文件複製至 assets/failure/，原圖 SHA-256 和提供檔相同。原稿 1254×1254 RGBA、alpha 0～255。未重新生成圖片，使用既有最佳化流程產生 512px 最近鄰透明無損 WebP，預載於兩種模式。
+- RouteMission 在 fixed step 根據沿路 vehicleX 與目前未收運站中心計算距離。15m 警告／35m 失敗／至少 2s 警告皆集中 MISSION 常數；第一個越界幀僅警告，回到 15m 範圍或開始收運解除。整理、ready 與 departed 不適用。
+- 新增 missed-stop failure 與 missedStationName，保留既有 collision 與 crew-anger 行為和 optional 欄位相容性。HUD 漏站失敗使用便服婦人插圖及站名；桌面／手機警告共用 urgentWarning，失敗仍凍結任務並可重新出車。
+- check、256 項測試、build 通過，包含兩模式警告／回頭／站內／離站、三種固定步長最短警告時間、失敗凍結與插圖選擇。新功能尚未部署，上一個 staging 發布版本仍是 fee21bbf-615d-4ea6-9121-635c6de9bdd7。
+
+- Chromium 390×844、320×568、844×390 與桌面 1280×900 驗證兩模式實際警告、倒回解除、補停成功、民眾圖解碼與漏站原因、失敗後時間凍結、重新出車；圖片和重開按鈕可见，無頁面例外。預覽在本次 Codex visualizations 目錄。
+
+
+### 喇叭音色調整（2026-10-14，本機待發布）
+
+- 使用者要求更接近汽車喇叭。HornSound 改為自訂 PeriodicWave 雙音（405／510Hz）與簧片諧波，低通 2800Hz、15ms 起音、持續段、65ms 收尾，共 380ms。音色參數集中 HORN_SOUND，與 BAY_VIOLATION 遊戲規則分開；音訊節點在 onended 清理，120ms 重觸發限制避免密集堆疊。
+- 同一 scheduleHorn 支援真實 AudioContext 和 OfflineAudioContext 試聽；離線樣本峰值 0.1826、持續段 RMS 約 0.063，兩個基音存在、收尾靜音、不削波。試聽 WAV／MP3 位於本次 Codex visualizations 的 car-horn-v2。
+- check、256 項測試、build 通過；Chromium 真實 H 與觸控喇叭均觸發新聲音，沒有頁面例外。未部署，staging 仍為 fee21bbf-615d-4ea6-9121-635c6de9bdd7。
+
+
+### 漏站與新版喇叭發布（2026-10-14）
+
+- 使用者授權「先部署到 CF」。dry-run 通過，npm run deploy:staging 重新建置並更新既有 gta-recycling-staging，版本 58a4aacc-4127-4beb-841b-9c5355bb09cc。發布前已通過 check、256 項測試、build 與漏站／音訊瀏覽器驗證。
+- 既有 https://gtar.0928029003.org/ 引用 index-BmuLIgcQ.js／index-CZaQHP32.css；線上 HTML、JS、CSS、全部圖片共 46 檔 SHA-256 與 dist 一致。包含提供的民眾插圖、15m 警告／35m 失敗與至少 2s 警告，以及新版汽車雙音喇叭。
+- Chromium 手機垃圾車、桌面回收車實際開啟：素材就緒、開始正常、喇叭控制可見、無頁面例外。未修改 DNS、routes 或 Nginx，未改 /var/www 素材草稿。發布前版本 fee21bbf-615d-4ea6-9121-635c6de9bdd7 保留供回滾。

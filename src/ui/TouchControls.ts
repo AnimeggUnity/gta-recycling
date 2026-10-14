@@ -1,6 +1,8 @@
 import { touchInput, type TouchAction } from './TouchInputState';
 import type { ControlMode } from './DeviceMode';
 import { RotarySteering } from './RotarySteering';
+import { hornInput } from './HornInput';
+import { hornSound } from './HornSound';
 
 export class TouchControls {
   private readonly element = document.createElement('div');
@@ -17,6 +19,16 @@ export class TouchControls {
     this.element.className = 'touch-controls';
     this.element.innerHTML = `<div class="steering-control"><button type="button" class="touch-wheel" data-action="steering" aria-label="方向盤：按住沿圓周旋轉，順時針右轉、逆時針左轉"><span class="wheel-ring" aria-hidden="true"><i class="wheel-marker"></i><i class="wheel-spoke left"></i><i class="wheel-spoke right"></i><i class="wheel-spoke bottom"></i><i class="wheel-hub"></i></span></button><span class="touch-caption">沿圓周旋轉 · 放開回正</span></div><div class="pedal-controls"><button type="button" class="touch-pedal reverse" data-action="reverse" aria-label="按住倒車">↓<small>倒車</small></button><button type="button" class="touch-pedal brake" data-action="brake" aria-label="按住煞車">■<small>煞車</small></button><button type="button" class="touch-pedal forward" data-action="forward" aria-label="按住油門">↑<small>油門</small></button></div>`;
     this.wheel = this.element.querySelector<HTMLButtonElement>('.touch-wheel')!;
+    const horn = document.createElement('button');
+    horn.type = 'button'; horn.className = 'touch-horn'; horn.textContent = '📢 喇叭';
+    horn.setAttribute('aria-label', '按喇叭驅離收運灣違停車輛');
+    const requestHorn = () => { if (this.mode === 'touch') { hornSound.unlock(); hornInput.request(); } };
+    horn.addEventListener('pointerdown', event => {
+      if (event.pointerType === 'mouse' && event.button !== 0) return;
+      event.preventDefault(); requestHorn();
+    });
+    horn.addEventListener('click', event => { if (event.detail === 0) requestHorn(); });
+    this.element.append(horn);
     this.toggle.className = 'input-mode-toggle';
     this.toggle.type = 'button';
     this.toggle.addEventListener('click', () => this.setMode(this.mode === 'touch' ? 'keyboard' : 'touch'));
@@ -78,7 +90,7 @@ export class TouchControls {
 
   private reset(): void {
     const pointer = this.wheelPointer;
-    this.wheelPointer = undefined; this.rotary.reset(); touchInput.reset();
+    this.wheelPointer = undefined; this.rotary.reset(); touchInput.reset(); hornInput.reset();
     if (pointer !== undefined && this.wheel.hasPointerCapture(pointer)) this.wheel.releasePointerCapture(pointer);
     this.paint();
   }

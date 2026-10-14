@@ -24,7 +24,11 @@ export class FlickGesture {
   }
   public release(x: number, y: number, time: number): TossGesture | undefined {
     if (!this.origin) return;
-    this.move(x, y, time);
+    const last = this.points.at(-1);
+    const microPause = last && time >= last.time
+      && time - last.time <= TOSS.releaseFreezeToleranceMs
+      && Math.hypot(x - last.x, y - last.y) < TOSS.releaseFreezeDistance;
+    if (!microPause) this.move(x, y, time);
     const moved = Math.hypot(x - this.origin.x, y - this.origin.y) >= TOSS.minGestureDistance;
     const gesture = this.velocity();
     this.cancel();

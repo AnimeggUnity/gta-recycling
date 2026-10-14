@@ -60,6 +60,16 @@ export class Hud {
     settlement?: MissionSettlement;
   }>): void {
     const garbage = data.mode === 'garbage';
+    const failureArt = data.failure?.reason === 'missed-stop' ? gameArt.citizen
+      : data.failure?.reason === 'collision' ? gameArt.police : garbage ? gameArt.garbageWorker : gameArt.worker;
+    const failureAlt = data.failure?.reason === 'missed-stop' ? '暴怒民眾甩出垃圾袋'
+      : data.failure?.reason === 'collision' ? '迎面衝出的警車' : garbage ? '暴怒收運人員舉起垃圾袋' : '暴怒收運人員舉起回收籃子';
+    const failureCause = data.failure?.reason === 'missed-stop' ? '過站不停，民眾暴怒！'
+      : data.failure?.reason === 'collision' ? '發生交通事故' : '隨車人員暴怒！';
+    const failureDescription = data.failure?.reason === 'missed-stop'
+      ? `錯過${data.failure.missedStationName ?? '收運站'}且未返回停靠，民眾拒絕配合收運，本次任務中止。`
+      : data.failure?.reason === 'collision' ? `撞到${data.failure.collisionLabel ?? '車輛或建築物'}，本次收運立即中止。`
+      : '隨車人員怒氣達到 100%，拒絕繼續收運。';
     const tossing = data.settlement?.tossing;
     const hitRate = tossing && tossing.hits + tossing.misses > 0 ? Math.round(tossing.hits / (tossing.hits + tossing.misses) * 100) : 0;
     const handling = Math.abs(data.lateralSpeed) > 14 ? '輪胎滑動' : '抓地正常';
@@ -92,18 +102,18 @@ export class Hud {
         <div class="anger-reason">${data.angerReason}</div>
         <div class="cargo-heading"><span>車斗容量</span><span>${data.cargoVolume} / ${data.maxCargoVolume}</span></div>
         <div class="meter cargo-meter"><i style="width:${this.percent(data.cargoVolume, data.maxCargoVolume)}%"></i></div>
-        <div class="cargo-legend">${garbage ? `<span>入車 ${data.tossing?.hits ?? 0} 包 · 投擲 ${data.tossing?.score ?? 0} 分</span>` : '<span>■ 紙　<span>■ 塑膠</span>　<span>■ 金屬</span>　<span>■ 玻璃</span></span>'}<span>${data.cargoWeight}/${data.maxCargoWeight} kg</span></div>
+        <div class="cargo-legend">${garbage ? `<span>處理 ${data.tossing?.hits ?? 0} 包 · 收運 ${data.tossing?.score ?? 0} 分</span>` : '<span>■ 紙　<span>■ 塑膠</span>　<span>■ 金屬</span>　<span>■ 玻璃</span></span>'}<span>${data.cargoWeight}/${data.maxCargoWeight} kg</span></div>
       </section>
       <section class="speed-panel panel ${overspeed ? 'speed-warning' : ''}"><div class="eyebrow">${handling}<span>${overspeed ? '怒氣累積' : '車速'}</span></div><div class="speed-number">${speed.toString().padStart(2, '0')}<small>km/h</small></div><div class="speed-note">最高 60　怒氣 >35</div></section>
-      <div class="controls-hint">${data.difficulty === 'easy' ? '簡單模式 · 自動駕駛　<kbd>SPACE</kbd> 暫停／繼續' : '<kbd>WASD</kbd> / <kbd>↑↓←→</kbd> 駕駛 <span>·</span> <kbd>SPACE</kbd> 緊急煞車'}</div>`;
+      <div class="controls-hint">${data.difficulty === 'easy' ? '簡單模式 · 自動駕駛　<kbd>SPACE</kbd> 暫停／繼續' : '<kbd>WASD</kbd> / <kbd>↑↓←→</kbd> 駕駛 <span>·</span> <kbd>SPACE</kbd> 緊急煞車 <span>·</span> <kbd>H</kbd> 喇叭'}</div>`;
     if (this.element.innerHTML !== markup) this.element.innerHTML = markup;
 
     this.settlement.hidden = !data.settlement && !data.failure;
-    this.settlement.className = `settlement${data.failure ? ` mission-failed ${data.failure.reason === 'collision' ? 'collision-failed' : 'anger-failed'}` : ''}`;
+    this.settlement.className = `settlement${data.failure ? ` mission-failed ${data.failure.reason === 'missed-stop' ? 'citizen-failed' : data.failure.reason === 'collision' ? 'collision-failed' : 'anger-failed'}` : ''}`;
     if (data.settlement || data.failure) {
       const settlementMarkup = data.failure
-        ? `<img class="failure-illustration" data-asset="${data.failure.reason === 'collision' ? gameArt.police : garbage ? gameArt.garbageWorker : gameArt.worker}" alt="${data.failure.reason === 'collision' ? '迎面衝出的警車' : garbage ? '暴怒收運人員舉起垃圾袋' : '暴怒收運人員舉起回收籃子'}" draggable="false"><div class="failure-message" role="alertdialog" aria-modal="true" aria-label="任務失敗"><div class="eyebrow">SHIFT FAILED / 收運中止</div><strong>任務失敗</strong><div class="failure-cause">${data.failure.reason === 'collision' ? '發生交通事故' : '隨車人員暴怒！'}</div><p>${data.failure.reason === 'collision' ? `撞到${data.failure.collisionLabel ?? '車輛或建築物'}，本次收運立即中止。` : '隨車人員怒氣達到 100%，拒絕繼續收運。'}</p><div class="report-row"><span>出車時間</span><span>${this.duration(data.failure.totalSeconds)}</span></div><div class="report-row"><span>完成站數</span><span>${data.failure.stationCount} / ${data.stationCount}</span></div><button type="button" id="restart-mission">重新出車 →</button></div>`
-        : `<div class="eyebrow">SHIFT COMPLETE / 收運報告 · ${data.difficulty === 'easy' ? '簡單模式' : '一般模式'}</div><strong>辛苦了，收工！</strong><p>${garbage ? '三站垃圾投擲與壓縮作業完成' : '三站回收物已完成收運'}</p><div class="score"><b>${tossing ? tossing.score : data.settlement!.score}</b><span>${tossing ? '投擲分數' : '勤務評分'}</span></div>${tossing ? `<div class="report-row"><span>成功／失敗</span><span>${tossing.hits} / ${tossing.misses} 包</span></div><div class="report-row"><span>命中率</span><span>${hitRate}%</span></div><div class="report-row"><span>駕駛評分</span><span>${data.settlement!.score}</span></div>` : ''}<div class="report-row"><span>完成時間</span><span>${this.duration(data.settlement!.totalSeconds)}</span></div><div class="report-row"><span>累計延誤</span><span>${Math.round(data.settlement!.totalDelaySeconds)} 秒</span></div>${mobile ? '' : `<div class="report-row"><span>最高怒氣</span><span>${Math.round(data.settlement!.peakAnger)} / 100</span></div>`}<div class="report-row"><span>完成站數</span><span>${data.settlement!.stationCount} / ${data.stationCount}</span></div><button type="button" id="restart-mission">重新出車 →</button>`;
+        ? `<img class="failure-illustration" data-asset="${failureArt}" alt="${failureAlt}" draggable="false"><div class="failure-message" role="alertdialog" aria-modal="true" aria-label="任務失敗"><div class="eyebrow">SHIFT FAILED / 收運中止</div><strong>任務失敗</strong><div class="failure-cause">${failureCause}</div><p>${failureDescription}</p><div class="report-row"><span>出車時間</span><span>${this.duration(data.failure.totalSeconds)}</span></div><div class="report-row"><span>完成站數</span><span>${data.failure.stationCount} / ${data.stationCount}</span></div><button type="button" id="restart-mission">重新出車 →</button></div>`
+        : `<div class="eyebrow">SHIFT COMPLETE / 收運報告 · ${data.difficulty === 'easy' ? '簡單模式' : '一般模式'}</div><strong>辛苦了，收工！</strong><p>${garbage ? '三站垃圾投擲與壓縮作業完成' : '三站回收物已完成收運'}</p><div class="score"><b>${tossing ? tossing.score : data.settlement!.score}</b><span>${tossing ? '收運分數' : '勤務評分'}</span></div>${tossing ? `<div class="report-row"><span>成功／失敗</span><span>${tossing.hits} / ${tossing.misses} 包</span></div><div class="report-row"><span>處理成功率</span><span>${hitRate}%</span></div><div class="report-row"><span>駕駛評分</span><span>${data.settlement!.score}</span></div>` : ''}<div class="report-row"><span>完成時間</span><span>${this.duration(data.settlement!.totalSeconds)}</span></div><div class="report-row"><span>累計延誤</span><span>${Math.round(data.settlement!.totalDelaySeconds)} 秒</span></div>${mobile ? '' : `<div class="report-row"><span>最高怒氣</span><span>${Math.round(data.settlement!.peakAnger)} / 100</span></div>`}<div class="report-row"><span>完成站數</span><span>${data.settlement!.stationCount} / ${data.stationCount}</span></div><button type="button" id="restart-mission">重新出車 →</button>`;
       if (this.settlementMarkup !== settlementMarkup) {
         this.settlementMarkup = settlementMarkup;
         this.settlement.innerHTML = settlementMarkup;

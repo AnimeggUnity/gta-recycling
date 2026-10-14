@@ -1,0 +1,107 @@
+{
+  "generator": "built-in image_gen",
+  "styleSource": "assets/styles/gta-recycling-pixel-v1.json",
+  "promptSource": "prompts.json",
+  "assets": [
+    {
+      "id": "gas-canister",
+      "file": "gas-canister.png",
+      "source": "/home/ubuntu/.codex/generated_images/01a13804-d369-7d42-948f-a11d95a3bde7/exec-f8a2f9be-da64-4280-88b3-f38a713e6f5e.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "bounds": [
+        0,
+        9,
+        1230,
+        1231
+      ]
+    },
+    {
+      "id": "lithium-battery",
+      "file": "lithium-battery.png",
+      "source": "/home/ubuntu/.codex/generated_images/01a13804-d369-7d42-948f-a11d95a3bde7/exec-ee5c7750-7e55-41ca-8a60-1106ef5d91f2.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "bounds": [
+        0,
+        0,
+        1240,
+        1254
+      ]
+    },
+    {
+      "id": "hazard-bag-gas",
+      "file": "hazard-bag-gas.png",
+      "source": "/home/ubuntu/.codex/generated_images/01a13804-d369-7d42-948f-a11d95a3bde7/exec-0de4678b-b178-4133-899b-d78cdf573ddf.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "bounds": [
+        0,
+        15,
+        1238,
+        1254
+      ]
+    },
+    {
+      "id": "hazard-bag-battery",
+      "file": "hazard-bag-battery.png",
+      "source": "/home/ubuntu/.codex/generated_images/01a13804-d369-7d42-948f-a11d95a3bde7/exec-cc93fb40-c8a7-4c4b-968e-09b2c0d960fb.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "bounds": [
+        65,
+        38,
+        1188,
+        1254
+      ]
+    },
+    {
+      "id": "normal-bag",
+      "file": "normal-bag.png",
+      "source": "/home/ubuntu/.codex/generated_images/01a13804-d369-7d42-948f-a11d95a3bde7/exec-1ba2124e-48d9-458f-b55e-fa41559f67d9.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ],
+      "bounds": [
+        0,
+        17,
+        1200,
+        1254
+      ]
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "styleSource": "assets/styles/gta-recycling-pixel-v1.json",
+  "generator": "built-in image_gen",
+  "assets": [
+    {
+      "id": "gas-canister",
+      "file": "gas-canister.png",
+      "prompt": "Use case: stylized-concept. Asset type: ONE independent inventory sprite for the existing Taiwan recycling-truck pixel game. Input image 1 is STYLE REFERENCE ONLY; do not include the reference beverage can. Subject: ONE discarded portable pressurized camping gas canister, not a beverage can or a large household LPG tank. Short silver-gray cylindrical metal body with rounded shoulder, narrow exposed top valve and collar, visible circular top and one side, muted brick-red band without writing. Distinct valve silhouette readable at small game size. Style: authentic coarse 64x64 logical-pixel art enlarged to the output canvas, crisp large aligned square-pixel clusters and hard stair-step edges, deliberately low-detail game-readable silhouette, NOT a smooth high-resolution painting with pixel effects. View: consistent three-quarter overhead at about 65 degrees with enough side visible to identify the material. Upper-left light. Limited muted palette: dark teal #203739 outlines, cream #e6e5c9, pale cyan #9bc5c3, blue #315b78, kraft brown #ad865a, silver #a9b9b5, cool white #e2e9de. Flat 2-3 shade clusters per material, no gradients or antialiasing. Center exactly ONE entire object, 15 percent transparent margins, separate object silhouette, fully opaque color clusters inside object. No text, labels, logos, brands, watermark, floor, ground shadow, grid, scene, extra objects or sprite sheet. Long objects should have their long axis vertical. Match the reference pixel-cluster scale, stepped outlines and restrained palette. No warning frame, UI badge or text; these will be added by the game.",
+      "referenceImages": [
+        "assets/recycling/samples-v1/metal-can/01-standard-soda.png"
+      ],
+      "transparentBackground": true
+    },
+    {
+      "id": "lithium-battery",
+      "file": "lithium-battery.png",
+      "prompt": "Use case: stylized-concept. Asset type: ONE independent inventory sprite for the existing Taiwan recycling-truck pixel game. Input image 1 is STYLE REFERENCE ONLY; do not include the reference beverage can. Subject: ONE discarded lithium-ion power bank. Thick flat rectangular muted blue-gray casing, rounded corners, visible top face and side thickness, two simple dark charging-port openings at one short end. A few cream pixel scuffs, no symbols or writing. Clearly a power bank, not an AA battery or phone. Style: authentic coarse 64x64 logical-pixel art enlarged to the output canvas, crisp large aligned square-pixel clusters and hard stair-step edges, deliberately low-detail game-readable silhouette, NOT a smooth high-resolution painting with pixel effects. View: consistent three-quarter overhead at about 65 degrees with enough side visible to identify the material. Upper-left light. Limited muted palette: dark teal #203739 outlines, cream #e6e5c9, pale cyan #9bc5c3, blue #315b78, kraft brown #ad865a, silver #a9b9b5, cool white #e2e9de. Flat 2-3 shade clusters per material, no gradients or antialiasing. Center exactly ONE entire object, 15 percent transparent margins, separate object silhouette, fully opaque color clusters inside object. No text, labels, logos, brands, watermark, floor, ground shadow, grid, scene, extra objects or sprite sheet. Long objects should have their long axis vertical. Match the reference pixel-cluster scale, stepped outlines and restrained palette. No warning frame, UI badge or text; these will be added by the game.",
+      "referenceImages": [
+        "assets/recycling/samples-v1/metal-can/01-standard-soda.png"
+      ],
+      "transparentBackground": true
+    },
+    {
+      "id": "hazard-bag-gas",
+      "file": "hazard-bag-gas.png",
+      "prompt": "Use case: stylized-concept. Asset type: ONE independent inventory sprite for the existing Taiwan recycling-truck pixel game. Input image 1 is STYLE REFERENCE ONLY; do not include the reference beverage can. Subject: ONE bulging tied dark teal-black household plastic garbage bag. Irregular rounded silhouette, visible knotted neck, sparse chunky folded-plastic highlights. ONE large jagged tear in its front-facing side exposes a portable pressurized gas canister INSIDE the bag: silver-gray curved metal shoulder, top valve and muted brick-red band. Contents visibly tucked behind torn plastic edges, not a printed icon or object floating outside. Keep bag and contents fully opaque. Style: authentic coarse 64x64 logical-pixel art enlarged to the output canvas, crisp large aligned square-pixel clusters and hard stair-step edges, deliberately low-detail game-readable silhouette, NOT a smooth high-resolution painting with pixel effects. View: consistent three-quarter overhead at about 65 degrees with enough side visible to identify the material. Upper-left light. Limited muted palette: dark teal #203739 outlines, cream #e6e5c9, pale cyan #9bc5c3, blue #315b78, kraft brown #ad865a, silver #a9b9b5, cool white #e2e9de. Flat 2-3 shade clusters per material, no gradients or antialiasing. Center exactly ONE entire object, 15 percent transparent margins, separate object silhouette, fully opaque color clusters inside object. No text, labels, logos, brands, watermark, floor, ground shadow, grid, scene, extra objects or sprite sheet. Long objects should have their long axis vertical. Match the reference pixel-cluster scale, stepped outlines and restrained palette. No warning frame, UI badge or text; these will be added by the game. Input image 2 is the generated contents reference: preserve this object's recognizable design inside the tear, partially occluded by the bag. Do not include a separate standalone object.",
+      "referenceImages": [
+        "assets/recycling/samples-v1/metal-can/01-standard-soda.png",
+        "assets/toss/hazards-v1/gas-canister.png"
+      ],
+      "transparentBackground": true
+    },
+    {
+      "id": "hazard-bag-battery",
+      "file": "hazard-bag-battery.png",
+      "prompt": "Use case: precise-object-edit. Asset type: ONE transparent pixel-art hazard garbage-bag sprite for the existing Taiwan recycling game. Input image 1 is the edit target, the gas-canister hazard bag. Input image 2 is the power-bank contents reference. Replace ONLY the gas canister visible through the jagged tear with ONE lithium-ion power bank matching input image 2: thick flat rectangular muted blue-gray casing, cream pixel scuffs, visible side thickness and dark charging ports at one short end. Fit the power bank believably inside the tear, partly occluded behind its plastic edges. Preserve the exact bag silhouette, knot, tear outline, dark teal-black color, chunky pixel scale, stair-step contours, fold highlights, upper-left lighting, camera, composition, transparent background and framing of image 1. No remaining gas canister or red gas-canister band. No separate object outside the bag. Keep all object pixels opaque. No text, logo, warning badge, red border, UI, ground shadow, scenery, smooth vector curves or antialiasing. Genuine transparent alpha background.",
+      "referenceImages": [
+        "assets/toss/hazards-v1/hazard-bag-gas.png",
+        "assets/toss/hazards-v1/lithium-battery.png"
+      ],
+      "transparentBackground": true
+    },
+    {
+      "id": "normal-bag",
+      "file": "normal-bag.png",
+      "prompt": "Use case: precise-object-edit. Edit the provided pixel-art dark teal-black tied garbage bag. Remove ONLY the jagged opening and the exposed gas canister, replacing them with continuous opaque dark teal-black folded plastic matching the surrounding bag. Preserve the exact outer silhouette, tied knot, pixel-cluster size, hard stair-step outline, upper-left cream and pale cyan highlights, dark folds, camera, centered composition, canvas and genuine transparent background. ONE intact bulging household garbage bag. No tear, gas canister, contents, printed icon, text, warning frame, badge, UI, scenery or ground shadow. Do not smooth the pixel art.",
+      "referenceImages": [
+        "assets/toss/hazards-v1/hazard-bag-gas.png"
+      ],
+      "transparentBackground": true
+    }
+  ]
+}

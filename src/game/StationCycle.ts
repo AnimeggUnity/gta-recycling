@@ -25,6 +25,7 @@ export type StationObservation = Readonly<{
   attemptingToDrive: boolean;
   crewEfficiency?: number;
   vehicleRotation?: number;
+  dockingBlocked?: boolean;
 }>;
 
 export type ResidentSnapshot = Readonly<{
@@ -58,6 +59,15 @@ export class StationCycle {
   private warningTimer = 0;
   private capacityBlocked = false;
   private workRate = 1;
+  private consumedExplosions = 0;
+
+  /** Consume each compression accident once, within the scene's fixed step. */
+  public consumeHazardAnger(): number {
+    const explosions = this.tossing?.hazardExplosions ?? 0;
+    const count = explosions - this.consumedExplosions;
+    this.consumedExplosions = explosions;
+    return count * TOSS.hazardAngerPenalty;
+  }
 
   public constructor(
     public readonly definition: StationDefinition,
@@ -106,10 +116,10 @@ export class StationCycle {
 
     switch (this.phase) {
       case 'approaching':
-        if (insideStop) this.phase = 'stopping';
+        if (insideStop && !observation.dockingBlocked) this.phase = 'stopping';
         break;
       case 'stopping':
-        if (!insideStop) {
+        if (!insideStop || observation.dockingBlocked) {
           this.phase = 'approaching';
           this.stopTimer = 0;
         } else if (safelyStopped) {
@@ -194,7 +204,7 @@ export class StationCycle {
   }
 
   private beginService(): void {
-    if (this.definition.garbage) this.tossing = new TossQueue();
+    if (this.definition.garbage) this.tossing = new TossQueue(Math.random, true);
     this.phase = 'servicing';
     this.workerState = 'waiting';
     this.action = 'resident-arriving';

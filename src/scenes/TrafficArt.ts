@@ -31,7 +31,7 @@ export class TrafficArt {
   }
 }
 
-function drawVehicle(g: Phaser.GameObjects.Graphics, v: TrafficVehicle): void {
+export function drawVehicle(g: Phaser.GameObjects.Graphics, v: Pick<TrafficVehicle, 'kind' | 'halfLength' | 'halfWidth' | 'color'>): void {
   const l = v.halfLength, w = v.halfWidth;
   g.fillStyle(0x14282d, 0.3).fillRect(-l + 3, -w + 5, l * 2, w * 2);
   if (v.kind === 'scooter') {

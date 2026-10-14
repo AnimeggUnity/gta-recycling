@@ -4,7 +4,7 @@ import { RoadGraph } from '../src/game/RoadGraph';
 import { RouteMission, type RouteStation } from '../src/game/RouteMission';
 import { ROAD_EDGES, ROAD_NODES } from '../src/config/roads';
 import { ROUTE_STATIONS } from '../src/config/stations';
-import { NAVIGATION, VEHICLE } from '../src/config/balance';
+import { MISSION, NAVIGATION, VEHICLE } from '../src/config/balance';
 import { SORTING_ITEMS } from '../src/config/sorting';
 
 const station: RouteStation = {
@@ -18,6 +18,55 @@ const station: RouteStation = {
 };
 
 describe('RouteMission', () => {
+  it.each([false, true])('warns at 15m, permits recovery, and fails after 35m in garbage=%s', garbage => {
+    const mission = new RouteMission([{ ...station, garbage }], new CargoHold(), new RoadGraph([], []));
+    const atMeters = (meters: number) => ({ vehicleX: station.stop.x + meters / NAVIGATION.metersPerPixel, vehicleY: 0, vehicleSpeed: 0, attemptingToDrive: false });
+    mission.update(atMeters(14.99), 0, 1 / 60); expect(mission.missedStopWarning).toBeUndefined();
+    mission.update(atMeters(15.01), 0, 1 / 60); expect(mission.missedStopWarning).toContain('第一站');
+    for (let i = 0; i < 180; i++) mission.update(atMeters(20), 0, 1 / 60);
+    expect(mission.failed).toBe(false); // Stopping in the recovery corridor is allowed.
+    mission.update(atMeters(14), 0, 1 / 60); expect(mission.missedStopWarning).toBeUndefined();
+    mission.update(atMeters(36), 0, 1 / 60); expect(mission.failed).toBe(false);
+    mission.update(atMeters(36), 0, MISSION.missedStopWarningSeconds - 0.1); expect(mission.failed).toBe(false);
+    mission.update(atMeters(36), 0, 0.2); expect(mission.failed).toBe(true);
+    expect(mission.getFailure()).toMatchObject({ reason: 'missed-stop', missedStationName: '第一站', stationCount: 0 });
+    expect(mission.missedStopWarning).toBeUndefined(); expect(mission.getSettlement()).toBeUndefined();
+    const elapsed = mission.elapsedSeconds;
+    mission.update(atMeters(0), 100, 30); mission.fail('collision', '汽車');
+    expect(mission.elapsedSeconds).toBe(elapsed); expect(mission.getFailure()?.reason).toBe('missed-stop');
+    expect(mission.results).toHaveLength(0);
+  });
+  it('does not confuse lateral distance, a stopped bay queue or backward travel with a missed stop', () => {
+    const mission = new RouteMission([station], new CargoHold(), new RoadGraph([], []));
+    for (const vehicleX of [station.stop.x - 1000, station.stop.x]) {
+      for (let i = 0; i < 180; i++) mission.update({ vehicleX, vehicleY: 1000, vehicleSpeed: 0, attemptingToDrive: false, dockingBlocked: true }, 0, 1 / 60);
+    }
+    expect(mission.failed).toBe(false); expect(mission.missedStopWarning).toBeUndefined();
+  });
+  it('clears the warning on successful service and permits normal departure', () => {
+    const mission = new RouteMission([station], new CargoHold(), new RoadGraph([], []));
+    const observation = { vehicleX: station.stop.x, vehicleY: 0, vehicleSpeed: 0, attemptingToDrive: false };
+    mission.update({ ...observation, vehicleX: station.stop.x + 20 / NAVIGATION.metersPerPixel }, 0, 1 / 60);
+    expect(mission.missedStopWarning).toBeDefined();
+    mission.update(observation, 0, 0.1); mission.update(observation, 0, 0.8);
+    expect(mission.activeCycle?.phase).toBe('servicing'); expect(mission.missedStopWarning).toBeUndefined();
+    for (const phase of ['organizing', 'ready'] as const) {
+      mission.activeCycle!.phase = phase;
+      mission.update({ ...observation, vehicleX: station.stop.x + 100 / NAVIGATION.metersPerPixel }, 0, 1 / 60);
+      expect(mission.failed).toBe(false);
+    }
+    expect(mission.complete).toBe(true);
+  });
+  it.each([1 / 30, 1 / 60, 1 / 120])('keeps at least two seconds of warning with step %s', dt => {
+    const mission = new RouteMission([station], new CargoHold(), new RoadGraph([], []));
+    const observation = { vehicleX: station.stop.x + 50 / NAVIGATION.metersPerPixel, vehicleY: 0, vehicleSpeed: 0, attemptingToDrive: false };
+    mission.update(observation, 0, dt);
+    expect(mission.missedStopWarning).toBeDefined();
+    for (let i = 0; i < Math.floor(MISSION.missedStopWarningSeconds / dt) - 1; i++) mission.update(observation, 0, dt);
+    expect(mission.failed).toBe(false);
+    for (let i = 0; i < 3; i++) mission.update(observation, 0, dt);
+    expect(mission.failed).toBe(true);
+  });
   it('preserves a collision failure and its cause even if anger later reaches 100', () => {
     const mission = new RouteMission([station], new CargoHold(), new RoadGraph([], []));
     mission.fail('collision', '汽車');

@@ -47,7 +47,7 @@ export type MissionSettlement = Readonly<{
   tossing?: TossStats;
 }>;
 
-export type MissionFailure = Readonly<{ reason: 'crew-anger' | 'collision'; collisionLabel?: string; totalSeconds: number; stationCount: number }>;
+export type MissionFailure = Readonly<{ reason: 'crew-anger' | 'collision' | 'missed-stop'; collisionLabel?: string; missedStationName?: string; totalSeconds: number; stationCount: number }>;
 
 export class RouteMission {
   public elapsedSeconds = 0;
@@ -58,6 +58,15 @@ export class RouteMission {
   public failed = false;
   private failureReason: MissionFailure['reason'] = 'crew-anger';
   private collisionLabel?: string;
+  private missedStationName?: string;
+  private missedStopWarningActive = false;
+  private missedStopWarningElapsed = 0;
+
+  public get missedStopWarning(): string | undefined {
+    return this.missedStopWarningActive && !this.ended
+      ? `⚠ 你錯過${this.activeStation?.name}！請倒回停靠，民眾正在催促！`
+      : undefined;
+  }
 
   private arrivalSeconds: number | undefined;
 
@@ -91,10 +100,11 @@ export class RouteMission {
     this.failed = true;
     this.failureReason = reason;
     this.collisionLabel = collisionLabel;
+    if (reason === 'missed-stop') this.missedStationName = this.activeStation?.name;
   }
 
   public getFailure(): MissionFailure | undefined {
-    return this.failed ? { reason: this.failureReason, ...(this.collisionLabel ? { collisionLabel: this.collisionLabel } : {}), totalSeconds: this.elapsedSeconds, stationCount: this.results.length } : undefined;
+    return this.failed ? { reason: this.failureReason, ...(this.collisionLabel ? { collisionLabel: this.collisionLabel } : {}), ...(this.missedStationName ? { missedStationName: this.missedStationName } : {}), totalSeconds: this.elapsedSeconds, stationCount: this.results.length } : undefined;
   }
 
   public update(observation: StationObservation, crewAnger: number, dt: number): void {
@@ -107,6 +117,8 @@ export class RouteMission {
     if (!cycle || !station) return;
 
     cycle.update(observation, dt);
+    this.checkMissedStop(observation.vehicleX, dt);
+    if (this.ended) return;
     if (this.arrivalSeconds === undefined && cycle.phase === 'servicing') this.arrivalSeconds = this.elapsedSeconds;
     if (cycle.phase !== 'departed') return;
 
@@ -121,6 +133,8 @@ export class RouteMission {
       ...(cycle.tossing ? { tossing: cycle.tossing.stats } : {}),
     });
     this.currentStationIndex += 1;
+    this.missedStopWarningActive = false;
+    this.missedStopWarningElapsed = 0;
     this.arrivalSeconds = undefined;
     const next = this.activeStation;
     this.activeCycle = next ? new StationCycle(next, this.cargo) : undefined;
@@ -156,6 +170,25 @@ export class RouteMission {
     const completed = this.results.reduce((sum, result) => ({ hits: sum.hits + (result.tossing?.hits ?? 0), misses: sum.misses + (result.tossing?.misses ?? 0), score: sum.score + (result.tossing?.score ?? 0) }), { hits: 0, misses: 0, score: 0 });
     const active = this.activeCycle?.tossing?.stats;
     return { hits: completed.hits + (active?.hits ?? 0), misses: completed.misses + (active?.misses ?? 0), score: completed.score + (active?.score ?? 0) };
+  }
+
+  /** Route-space x is forward even though the displayed road points upward. */
+  private checkMissedStop(vehicleX: number, dt: number): void {
+    const cycle = this.activeCycle;
+    const station = this.activeStation;
+    const approaching = cycle?.phase === 'approaching' || cycle?.phase === 'stopping';
+    const beyondMeters = station ? (vehicleX - station.stop.x) * NAVIGATION.metersPerPixel : 0;
+    if (!approaching || beyondMeters < MISSION.missedStopWarningMeters) {
+      this.missedStopWarningActive = false; this.missedStopWarningElapsed = 0;
+      return;
+    }
+    // First publish a warning, even if a frame starts beyond the failure threshold.
+    if (!this.missedStopWarningActive) {
+      this.missedStopWarningActive = true; this.missedStopWarningElapsed = 0;
+      return;
+    }
+    this.missedStopWarningElapsed += dt;
+    if (beyondMeters >= MISSION.missedStopFailureMeters && this.missedStopWarningElapsed >= MISSION.missedStopWarningSeconds) this.fail('missed-stop');
   }
 
   public getSettlement(): MissionSettlement | undefined {

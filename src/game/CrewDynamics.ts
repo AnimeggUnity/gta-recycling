@@ -1,6 +1,6 @@
 import type { VehicleTelemetry } from './Vehicle';
 import type { SurfaceFeedback } from './SurfaceSystem';
-import { SIDEWALK, TRAFFIC, VEHICLE } from '../config/balance';
+import { SIDEWALK, TOSS, TRAFFIC, VEHICLE } from '../config/balance';
 
 export type CrewReaction = 'calm' | 'annoyed' | 'angry' | 'furious';
 export type CrewRiskContext = Readonly<{
@@ -8,6 +8,7 @@ export type CrewRiskContext = Readonly<{
   residentDelaySeconds?: number;
   collisionImpact?: number;
   surface?: SurfaceFeedback;
+  stationAnger?: number;
 }>;
 
 export class CrewDynamics {
@@ -16,6 +17,7 @@ export class CrewDynamics {
   public swayLateral = 0;
   public bounce = 0;
   public irritationCause = '狀態平穩';
+  private stationReactionSeconds = 0;
 
   public get efficiency(): number {
     return Math.max(0.55, 1 - this.anger * 0.0045);
@@ -31,9 +33,16 @@ export class CrewDynamics {
   public finishStation(): void {
     this.anger = 0;
     this.irritationCause = '本站收運完成，怒氣已歸零';
+    this.stationReactionSeconds = 0;
   }
 
   public update(telemetry: VehicleTelemetry, potholeImpact: number, dt: number, context: CrewRiskContext = {}): void {
+    const stationAnger = Math.max(0, context.stationAnger ?? 0);
+    this.stationReactionSeconds = Math.max(0, this.stationReactionSeconds - dt);
+    if (stationAnger > 0) {
+      this.anger += stationAnger;
+      this.stationReactionSeconds = TOSS.feedbackSeconds;
+    }
     const targetForward = this.clamp(-telemetry.acceleration / 420, -1, 1);
     const targetLateral = this.clamp(-telemetry.lateralAcceleration / 220, -1, 1);
     const response = 1 - Math.exp(-8 * dt);
@@ -78,14 +87,15 @@ export class CrewDynamics {
       { label: '居民拖延交付', rate: residentDelayRate },
       { label: '急煞或車身衝擊', rate: roughRideRate },
     ];
-    this.irritationCause = collisionImpact > 0 ? '車輛碰撞'
+    this.irritationCause = this.stationReactionSeconds > 0 ? `誤投危險物，壓縮爆鳴 (+${TOSS.hazardAngerPenalty})`
+      : collisionImpact > 0 ? '車輛碰撞'
       : curbImpact > 0 ? '駛上人行道路緣'
       : potholeImpact > 0
       ? '坑洞衝擊'
       : causes.reduce((strongest, cause) => cause.rate > strongest.rate ? cause : strongest, { label: '狀態平穩', rate: 0 }).label;
 
     if (irritationRate > 0.05) this.anger += irritationRate * dt;
-    else this.anger -= (telemetry.speed < 8 ? 0.5 : 0.12) * dt;
+    else if (stationAnger === 0) this.anger -= (telemetry.speed < 8 ? 0.5 : 0.12) * dt;
     this.anger = this.clamp(this.anger, 0, 100);
   }
 

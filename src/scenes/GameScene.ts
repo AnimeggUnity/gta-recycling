@@ -29,6 +29,9 @@ import { gameAssets } from '../ui/GameAssets';
 import { drawStreetArt } from './StreetArt';
 import { drawCrewExpression, drawPerson, drawTruckBody, drawGarbageTruckBody, drawCargoPile, RECYCLING_COLORS } from './TruckArt';
 import { TrafficArt } from './TrafficArt';
+import { BayViolationSystem } from '../game/BayViolationSystem';
+import { BayViolationArt } from './BayViolationArt';
+import { hornSound } from '../ui/HornSound';
 
 export class GameScene extends Phaser.Scene {
   private readonly mode = readGameMode();
@@ -47,6 +50,8 @@ export class GameScene extends Phaser.Scene {
   private readonly roads = new RoadGraph(ROAD_NODES, ROAD_EDGES);
   private readonly mission = new RouteMission(this.stations, this.cargo, this.roads);
   private readonly traffic = new TrafficSystem();
+  private readonly bayViolations = new BayViolationSystem(this.stations);
+  private bayViolationArt!: BayViolationArt;
   private readonly collisions = new CollisionWorld(STATIC_OBSTACLES);
   private trafficArt!: TrafficArt;
   private collisionWarningSeconds = 0;
@@ -88,6 +93,7 @@ export class GameScene extends Phaser.Scene {
     this.navigationLayer = this.add.graphics();
     this.stopMarker = this.add.graphics();
     this.trafficArt = new TrafficArt(this, this.traffic);
+    this.bayViolationArt = new BayViolationArt(this, this.bayViolations);
     this.createResidents();
     this.truck = this.createTruck();
     this.cameraTarget = this.add.zone(this.vehicle.x, this.vehicle.y, 1, 1);
@@ -98,6 +104,7 @@ export class GameScene extends Phaser.Scene {
     this.updateCargoVisuals();
     this.trafficArt.update(this.traffic);
     this.intro = new IntroPanel(() => {
+      hornSound.unlock();
       this.controls.reset();
       window.dispatchEvent(new Event('gta-input-reset'));
     }, consumeFailureRestart(), gameAssets, this.mode, this.difficulty);
@@ -115,6 +122,14 @@ export class GameScene extends Phaser.Scene {
     this.clock.advance(deltaMs / 1000, (dt) => {
       this.mission.checkCrewAnger(this.crew.anger);
       if (this.mission.ended) { this.vehicle.park(); return; }
+      const manualHorn = this.controls.takeHorn();
+      const automaticHorn = this.difficulty === 'easy' && !this.autopilot.paused
+        && Boolean(this.bayViolations.nearbyParkedViolator(this.vehicle.x, this.vehicle.y));
+      if (!this.mission.activeCycle?.departureLocked && (manualHorn || automaticHorn)) {
+        const triggered = this.bayViolations.triggerHorn(this.vehicle.x, this.vehicle.y);
+        if (manualHorn || triggered) hornSound.play();
+      }
+      this.bayViolations.update(dt, [...this.traffic.getObstacles(), { ...truckBody(this.vehicle), id: 'player', label: '收運車' }]);
       for (const command of this.sortingPanel.takeCommands()) {
         if (command.queue === this.mission.activeCycle?.sorting && this.mission.activeCycle.departureLocked) {
           this.sortingPanel.feedback(command.queue.place(command.instanceId, command.target));
@@ -127,7 +142,7 @@ export class GameScene extends Phaser.Scene {
       }
       const stepInput = this.difficulty === 'easy' ? this.autopilot.read({
         vehicle: this.vehicle, cycle: this.mission.activeCycle,
-        obstacles: [...this.traffic.getObstacles(), ...STATIC_OBSTACLES],
+        obstacles: [...this.traffic.getObstacles(), ...this.bayViolations.getObstacles(), ...STATIC_OBSTACLES],
         trafficSeconds: this.traffic.elapsedSeconds, ended: this.mission.ended,
       }) : input;
       const { throttle, steering } = stepInput;
@@ -140,16 +155,19 @@ export class GameScene extends Phaser.Scene {
         vehicleRotation: this.vehicle.rotation,
         attemptingToDrive: throttle !== 0,
         crewEfficiency: this.crew.efficiency,
+        dockingBlocked: this.bayViolations.blocksStation(this.mission.activeStation?.id),
       }, this.crew.anger, dt);
       const stationJustCompleted = wasOrganizing && servicingCycle?.phase === 'ready';
+      const stationAnger = servicingCycle?.consumeHazardAnger() ?? 0;
+      if (stationAnger > 0) this.pendingImpact = Math.max(this.pendingImpact, 1);
       const parked = Boolean(this.mission.activeCycle?.departureLocked) || this.mission.ended;
       if (parked) this.vehicle.park();
       else this.vehicle.update({ throttle, steering, brake: stepInput.brake }, dt);
       this.collisionWarningSeconds = Math.max(0, this.collisionWarningSeconds - dt);
       let collisionImpact = 0;
-      if (!this.mission.ended) this.traffic.update(dt, truckBody(this.vehicle), this.difficulty === 'easy' ? this.autopilot.merging : undefined);
+      if (!this.mission.ended) this.traffic.update(dt, truckBody(this.vehicle), this.difficulty === 'easy' ? this.autopilot.merging : undefined, this.bayViolations.getObstacles());
       if (!this.mission.ended) {
-        const collision = this.collisions.resolve(this.vehicle, this.traffic.getObstacles());
+        const collision = this.collisions.resolve(this.vehicle, [...this.traffic.getObstacles(), ...this.bayViolations.getObstacles()]);
         this.traffic.stopContacts(collision.contacts);
         if (collision.fatalContact) {
           this.mission.fail('collision', collision.fatalContact.label);
@@ -173,6 +191,7 @@ export class GameScene extends Phaser.Scene {
         residentDelaySeconds: this.mission.activeCycle?.residentDelaySeconds ?? 0,
         collisionImpact,
         surface,
+        stationAnger,
       });
       this.mission.checkCrewAnger(this.crew.anger);
       if (!this.mission.ended && stationJustCompleted) this.crew.finishStation();
@@ -190,6 +209,7 @@ export class GameScene extends Phaser.Scene {
     this.updateAttendants();
     this.updateCargoVisuals();
     this.trafficArt.update(this.traffic);
+    this.bayViolationArt.update(this.bayViolations);
     const touchMode = document.body.dataset.controls === 'touch';
     const lookAheadSeconds = touchMode ? DISPLAY.touchLookAheadSeconds : 0.42;
     const touchCameraOffset = touchMode ? this.scale.height * DISPLAY.touchCameraOffsetRatio / this.cameras.main.zoom : 0;
@@ -204,8 +224,12 @@ export class GameScene extends Phaser.Scene {
     const activeCycle = this.mission.activeCycle;
     if (sortingActive !== (!this.mission.ended && Boolean((activeCycle?.sorting || activeCycle?.tossing) && activeCycle.departureLocked)) || wasEnded !== this.mission.ended) this.controls.reset();
     document.body.dataset.missionEnded = String(this.mission.ended);
+    const hornNearby = !this.mission.ended && Boolean(this.bayViolations.nearbyParkedViolator(this.vehicle.x, this.vehicle.y));
+    document.body.dataset.hornNearby = String(hornNearby);
+    const missedStopWarning = this.mission.missedStopWarning;
+    document.body.dataset.missedStopWarning = String(Boolean(missedStopWarning));
     this.sortingPanel.update(this.mission.ended ? undefined : activeCycle);
-    this.tossingPanel.update(this.mission.ended ? undefined : activeCycle, this.mission.getTossStats());
+    this.tossingPanel.update(this.mission.ended ? undefined : activeCycle, this.mission.getTossStats(), this.crew);
     // DOM panels refresh at 10Hz; world rendering and fixed-step rules stay unchanged.
     this.hudElapsedMs += deltaMs;
     if (wasEnded !== this.mission.ended) this.hudElapsedMs = 100;
@@ -222,9 +246,9 @@ export class GameScene extends Phaser.Scene {
       speed: this.vehicle.speed,
       lateralSpeed: this.vehicle.telemetry.lateralSpeed,
       distanceMeters: navigation.remainingMeters,
-      status: this.mission.failed ? '任務失敗，收運中止' : this.collisionWarningSeconds > 0 ? this.collisionLabel : this.sidewalkActive ? this.sidewalkMoving ? '⚠ 人行道顛簸，怒氣快速累積！請駛回道路' : '⚠ 車輪在人行道上，請駛回道路' : this.difficulty === 'easy' && !activeCycle?.departureLocked ? this.autopilot.status : activeCycle?.getStatusText() ?? '✓ 三站路線全部完成',
+      status: this.mission.failed ? '任務失敗，收運中止' : this.collisionWarningSeconds > 0 ? this.collisionLabel : missedStopWarning ? missedStopWarning : this.sidewalkActive ? this.sidewalkMoving ? '⚠ 人行道顛簸，怒氣快速累積！請駛回道路' : '⚠ 車輪在人行道上，請駛回道路' : hornNearby ? '⚠ 收運灣有違停車！按 H 或喇叭，等車駛離再停靠' : this.difficulty === 'easy' && !activeCycle?.departureLocked ? this.autopilot.status : activeCycle?.getStatusText() ?? '✓ 三站路線全部完成',
       servicePhase: activeCycle?.phase,
-      urgentWarning: this.collisionWarningSeconds > 0 || this.sidewalkActive,
+      urgentWarning: this.collisionWarningSeconds > 0 || this.sidewalkActive || hornNearby || Boolean(missedStopWarning),
       cargoVolume: this.cargo.volume,
       maxCargoVolume: this.cargo.maxVolume,
       cargoWeight: this.cargo.weight,

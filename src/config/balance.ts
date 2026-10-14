@@ -121,6 +121,11 @@ export const TRAFFIC = {
   reactionSeconds: 0.7,
   spawnSpacing: 700,
   initialSpawnX: 600,
+  initialPositionJitter: 200,
+  scooterChance: 1 / 3,
+  minDesiredSpeed: 72,
+  maxDesiredSpeed: 103,
+  vehicleColors: [0xc5c9b0, 0x688f9b, 0xbd735f, 0x7c9386],
   vehiclesPerLane: 8,
   collisionYieldSeconds: 1.2,
   sedanHalfLength: 36,
@@ -138,7 +143,12 @@ export const TRAFFIC = {
   impactReferenceSpeed: 220,
   collisionAnger: 25,
 } as const;
-export const MISSION = { angerFailureThreshold: 100 } as const;
+export const MISSION = {
+  angerFailureThreshold: 100,
+  missedStopWarningMeters: 15,
+  missedStopFailureMeters: 35,
+  missedStopWarningSeconds: 2,
+} as const;
 
 export const ASSET_LOADING = { concurrency: 4, timeoutMs: 20000 } as const;
 
@@ -153,14 +163,20 @@ export const TOSS = {
   minGestureDistance: 0.035,
   sampleWindowMs: 100,
   minSampleMs: 16,
+  releaseFreezeToleranceMs: 45,
+  releaseFreezeDistance: 0.002,
   targetDepth: 1,
-  targetHalfWidth: 0.2,
-  targetMinHeight: 0.26,
-  targetMaxHeight: 0.5,
+  targetHalfWidth: 0.24,
+  targetMinHeight: 0.24,
+  targetMaxHeight: 0.535,
   feedbackSeconds: 0.8,
   maxFlightSeconds: 2.5,
   compressionSeconds: 1.6,
   crewReturnSeconds: 0.8,
+  hazardChance: 0.25,
+  hazardAngerPenalty: 35,
+  hazardScorePenalty: 100,
+  rejectSwipeVelocityY: 0.5,
   bagSizes: {
     small: { label: '小袋', mass: 0.7, scale: 0.8, volume: 4, weight: 1 },
     medium: { label: '中袋', mass: 1.1, scale: 1, volume: 7, weight: 2 },
@@ -204,4 +220,32 @@ export const AUTOPILOT = {
   mergeWaitOffset: 80,
   mergeRearGap: 200,
   mergeFrontGap: 180,
+} as const;
+
+export const BAY_VIOLATION = {
+  hornRange: 420,
+  hornCooldownSeconds: 0.4,
+  reactionSeconds: 0.55,
+  blinkSeconds: 0.35,
+  parkedOffsetX: -18,
+  acceleration: 110,
+  targetSpeed: 88,
+  lookAhead: 28,
+  clearDistancePastStop: 420,
+  color: 0xd28f56,
+} as const;
+
+export const HORN_SOUND = {
+  durationSeconds: 0.38,
+  attackSeconds: 0.015,
+  releaseSeconds: 0.065,
+  frequencies: [405, 510],
+  harmonics: [0, 1, 0.62, 0.36, 0.22, 0.13, 0.08],
+  lowpassHz: 2800,
+  resonance: 0.65,
+  volume: 0.16,
+  silenceFloor: 0.0001,
+  onsetPitchRatio: 0.985,
+  onsetPitchSeconds: 0.025,
+  retriggerSeconds: 0.12,
 } as const;

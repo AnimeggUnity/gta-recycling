@@ -12,6 +12,13 @@ const smooth: VehicleTelemetry = {
 };
 
 describe('CrewDynamics', () => {
+  it('adds hazard anger immediately and retains its cause through feedback', () => {
+    const crew = new CrewDynamics();
+    crew.update({ ...smooth, speed: 0 }, 0, 1 / 60, { stationAnger: 35 });
+    expect(crew.anger).toBe(35); expect(crew.irritationCause).toContain('壓縮爆鳴');
+    crew.update({ ...smooth, speed: 0 }, 0, 1 / 60);
+    expect(crew.anger).toBeLessThan(35); expect(crew.irritationCause).toContain('壓縮爆鳴');
+  });
   it('resets anger and efficiency after a station but preserves physical movement and can gain anger again', () => {
     const crew = new CrewDynamics(); crew.anger = 80; crew.swayForward = 0.4; crew.bounce = 0.6;
     crew.finishStation();

@@ -2,6 +2,17 @@ import { describe, expect, it } from 'vitest';
 import { FlickGesture } from '../src/ui/FlickGesture';
 
 describe('flick gesture velocity', () => {
+  it.each([15, 30, 45])('preserves velocity during a %sms lift pause', pause => {
+    const g = new FlickGesture();
+    g.begin(0.5, 0.85, 0); g.move(0.5, 0.45, 100);
+    const velocity = g.release(0.5, 0.45, 100 + pause)!;
+    expect(velocity.vx).toBe(0); expect(velocity.vy).toBeCloseTo(-4);
+  });
+  it('includes a lift pause longer than the tolerance', () => {
+    const g = new FlickGesture();
+    g.begin(0.5, 0.85, 0); g.move(0.5, 0.45, 100);
+    expect(g.release(0.5, 0.45, 146)?.vy).toBeCloseTo(-0.4 / 0.146);
+  });
   it('uses movement near release after a long hold', () => {
     const g = new FlickGesture();
     g.begin(0.5, 0.85, 0); g.move(0.5, 0.85, 1000);

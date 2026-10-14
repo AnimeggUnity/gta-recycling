@@ -30,8 +30,11 @@ for (const directory of (await readdir(originals, { withFileTypes: true })).filt
   }
 }
 await optimize(join(root, 'assets/recycling/backgrounds/truck-bed-sorting-v1.png'), 'backgrounds/truck-bed-sorting-v1.webp', 1152, false);
+for (const file of ['gas-canister', 'lithium-battery', 'hazard-bag-gas', 'hazard-bag-battery', 'normal-bag']) {
+  await optimize(join(root, `assets/toss/hazards-v1/${file}.png`), `toss/${file}.webp`, 256, true);
+}
 // Preserve the portrait background's 2:3 composition while reducing its long edge.
-for (const file of ['police-v1', 'angry-worker-v1', 'angry-garbage-worker-v1']) await optimize(join(root, `assets/failure/${file}.png`), `failure/${file}.webp`, 512, true);
+for (const file of ['police-v1', 'angry-worker-v1', 'angry-garbage-worker-v1', 'angry-woman-throw-v1']) await optimize(join(root, `assets/failure/${file}.png`), `failure/${file}.webp`, 512, true);
 const totals = entries.reduce((sum, item) => ({ originalBytes: sum.originalBytes + item.originalBytes, optimizedBytes: sum.optimizedBytes + item.optimizedBytes }), { originalBytes: 0, optimizedBytes: 0 });
 await writeFile(join(output, 'manifest.json'), JSON.stringify({ generator: `sharp ${sharp.versions.sharp}`, entries, totals }, null, 2) + '\n');
 console.log(JSON.stringify({ files: entries.length, ...totals, savedPercent: Math.round((1 - totals.optimizedBytes / totals.originalBytes) * 100) }, null, 2));
